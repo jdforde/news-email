@@ -4,7 +4,11 @@ from websites.nbc import scrape_nbc
 from websites.nyt import scrape_nyt
 import time
 
-
+#Add another site
+#Create test cases for utils
+#Comb over and make sure that all the formatting is good
+#Get logger to be more advanced + update logger messages accordingly
+#Figure out what __init__.py is 
 
 logging.basicConfig(level=logging.INFO)
 total_time = time.time()

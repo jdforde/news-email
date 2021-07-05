@@ -1,7 +1,6 @@
-from util.constants import STORY_CAPTION
 import requests
 import logging
-import util.constants as c
+import src.util.constants as c
 
 def send_request(link, source):
     try:

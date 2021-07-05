@@ -1,8 +1,9 @@
 from newspaper import Article
 from bs4 import BeautifulSoup
 import logging
-import util.constants as c
-from util.functions import send_request, has_all_components
+
+import src.util.constants as c
+from src.util.functions import send_request, has_all_components
 
 """
 Scrapes the front page of nbc and turns each article into an article dictionary, storing

@@ -3,8 +3,8 @@ import re
 import json
 import logging
 
-import util.constants as c
-from util.functions import send_request, has_all_components
+import src.util.constants as c
+from src.util.functions import send_request, has_all_components
 
 """
 Scrapes the front page of NPR and turns each article into an article dictionary, storing
@@ -21,6 +21,7 @@ NPR website request gives a feeds json file. The final digit changes often, vary
 0 and 9. There's a section of feeds called "items" which contains all stories. The json stories
 can be read as dictionaries. 
 """
+
 
 NPR_LINK = "https://www.npr.org/"
 NPR = "npr"
