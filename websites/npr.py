@@ -4,10 +4,6 @@ import re
 import json
 import logging
 
-from sumy.nlp.tokenizers import Tokenizer
-from sumy.parsers.plaintext import PlaintextParser
-from sumy.summarizers.text_rank import TextRankSummarizer
-
 import sys
 
 #comb through sumy and newspape to make sure no cool features were missed
@@ -40,9 +36,6 @@ STORY_SOURCE = "npr"
 
 WORDS_PER_BULLET = 400 #Could probably use some fine tuning, maybe isn't linear
 
-tr_summarizer = TextRankSummarizer()
-tokenizer = Tokenizer("english")
-
 
 def remove_captions(article_text):
     CAPTION_TEXT = "Enlarge this image"
@@ -71,24 +64,23 @@ def scrape_npr():
 
     except requests.exceptions.ConnectionError as e:
         logging.error("ERROR: Connection error raised while trying to request NPR: %s", e)
-        sys.exit(1)
+        return
     except requests.exceptions.HTTPError as e:
         logging.error("ERROR: HTTP error has occured while trying to request NPR: %s", e)
-        sys.exit(1)
+        return
     except requests.exceptions.Timeout as e:
         logging.error("ERORR: Request to NPR timed out: %s", e)
-        sys.exit(1)
+        return
     except requests.exceptions.TooManyRedirects as e:
         logging.error("ERROR: Too many requests made to NPR: %s", e)
-        sys.exit(1)
+        return
     except Exception as e:
         logging.error("ERROR: Unknown exception occured while trying to access NPR: %s", e)
-        sys.exit(1)
+        return
 
 
 
     stories = json.loads(json_request.text).get(ITEMS)
-    headline = stories[0]
 
     story_list = []
 
@@ -110,18 +102,9 @@ def scrape_npr():
         try: 
             article = Article(story[STORY_URL])
             article.build()
-            article_text = remove_captions(article.text)
         except Article.ArticleException as e: 
             logging.error("NPR: Error in trying to create Article for story %s:\n%s", story[STORY_TITLE], e)
-            sys.exit(1)
-
-        len_summary = get_len_summary(article_text)
-        if story == headline:
-            len_summary +=2
-
-        parser = PlaintextParser.from_string(article_text, tokenizer)
-        summary = tr_summarizer(parser.document, len_summary)
-        story_dict['summary'] = summary
+            return
 
         tags = []
         if STORY_TAGS in story.keys():
