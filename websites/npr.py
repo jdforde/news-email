@@ -4,8 +4,6 @@ import re
 import json
 import logging
 
-import sys
-
 #comb through sumy and newspape to make sure no cool features were missed
 #look into what TR summarizer does, and if there is a better one
 
@@ -16,7 +14,6 @@ it in a list. Each dictionary has key/value pairs:
     title: Title of article
     caption: NPR-given summary of article
     url: page url
-    summary: tuple summary given from sumy TRS 
     tags: NPR-given tags + newspaper-given tags
     source: website story was retrieved from, npr
     img: header image, optional
@@ -35,25 +32,6 @@ STORY_TAGS = "tags"
 STORY_SOURCE = "npr"
 
 WORDS_PER_BULLET = 400 #Could probably use some fine tuning, maybe isn't linear
-
-
-def remove_captions(article_text):
-    CAPTION_TEXT = "Enlarge this image"
-
-    article_list = article_text.split('\n')
-    for line in article_list:
-        if CAPTION_TEXT in line:
-            article_list.remove(line)
-    
-    return '\n'.join(article_list)
-
-def get_len_summary(article_text):
-    num_words = len(re.findall(r'\w+', article_text))
-    len_summary = round(num_words/WORDS_PER_BULLET)
-    if (len_summary == 0):
-        len_summary = 1
-    return len_summary
-
 
 def scrape_npr():
     logging.info("NPR:Starting web-scraping")
@@ -78,8 +56,6 @@ def scrape_npr():
         logging.error("ERROR: Unknown exception occured while trying to access NPR: %s", e)
         return
 
-
-
     stories = json.loads(json_request.text).get(ITEMS)
 
     story_list = []
@@ -102,9 +78,10 @@ def scrape_npr():
         try: 
             article = Article(story[STORY_URL])
             article.build()
+
         except Article.ArticleException as e: 
             logging.error("NPR: Error in trying to create Article for story %s:\n%s", story[STORY_TITLE], e)
-            return
+            continue
 
         tags = []
         if STORY_TAGS in story.keys():
