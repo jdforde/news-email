@@ -1,5 +1,7 @@
+from util.constants import STORY_CAPTION
 import requests
 import logging
+import util.constants as c
 
 def send_request(link, source):
     try:
@@ -22,3 +24,9 @@ def send_request(link, source):
         return
     
     return request
+
+def has_all_components(story_dict):
+    if (story_dict[c.STORY_URL] and story_dict[c.STORY_TITLE] and story_dict[c.STORY_CAPTION] and story_dict[c.STORY_TAGS] and story_dict[c.STORY_SOURCE]):
+        return True
+    else:
+        return False

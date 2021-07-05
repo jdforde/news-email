@@ -1,11 +1,10 @@
 from newspaper import Article
-import requests
 import re
 import json
 import logging
 
-#comb through sumy and newspape to make sure no cool features were missed
-#look into what TR summarizer does, and if there is a better one
+import util.constants as c
+from util.functions import send_request, has_all_components
 
 """
 Scrapes the front page of NPR and turns each article into an article dictionary, storing
@@ -17,43 +16,32 @@ it in a list. Each dictionary has key/value pairs:
     tags: NPR-given tags + newspaper-given tags
     source: website story was retrieved from, npr
     img: header image, optional
+
+NPR website request gives a feeds json file. The final digit changes often, varying between
+0 and 9. There's a section of feeds called "items" which contains all stories. The json stories
+can be read as dictionaries. 
 """
 
 NPR_LINK = "https://www.npr.org/"
+NPR = "npr"
 FEEDS_REGEX = "https://feeds.npr.org/feeds/100[0-9]/feed.json" #this is a guess
 
 ITEMS = "items"
 VIDEO_ARTICLE = "VIDEO"
-
-STORY_URL = "url"
-STORY_TITLE = "title"
 STORY_SUMMARY = "summary"
-STORY_TAGS = "tags"
-STORY_SOURCE = "npr"
-
-WORDS_PER_BULLET = 400 #Could probably use some fine tuning, maybe isn't linear
 
 def scrape_npr():
     logging.info("NPR:Starting web-scraping")
-    try:
-        npr_request = requests.get(NPR_LINK)
-        np_result = re.search(FEEDS_REGEX, npr_request.text)
-        json_request = requests.get(np_result.group(0))
 
-    except requests.exceptions.ConnectionError as e:
-        logging.error("ERROR: Connection error raised while trying to request NPR: %s", e)
+    npr_request = send_request(NPR_LINK, NPR)
+    if npr_request == None:
+        logging.critical("NPR: Unable to request NPR site")
         return
-    except requests.exceptions.HTTPError as e:
-        logging.error("ERROR: HTTP error has occured while trying to request NPR: %s", e)
-        return
-    except requests.exceptions.Timeout as e:
-        logging.error("ERORR: Request to NPR timed out: %s", e)
-        return
-    except requests.exceptions.TooManyRedirects as e:
-        logging.error("ERROR: Too many requests made to NPR: %s", e)
-        return
-    except Exception as e:
-        logging.error("ERROR: Unknown exception occured while trying to access NPR: %s", e)
+
+    np_result = re.search(FEEDS_REGEX, npr_request.text)
+    json_request = send_request(np_result.group(0), NPR)
+    if json_request == None:
+        logging.critical("NPR: Unable to request NPR json")
         return
 
     stories = json.loads(json_request.text).get(ITEMS)
@@ -61,22 +49,22 @@ def scrape_npr():
     story_list = []
 
     for story in stories:
-        if VIDEO_ARTICLE in story[STORY_TITLE]:
+        if VIDEO_ARTICLE in story[c.STORY_TITLE]:
             logging.info("NPR: Skipping video article")
             continue
 
         story_dict = {}
-        if ({STORY_TITLE, STORY_SUMMARY, STORY_URL} <= story.keys()):
-            logging.info("NPR: Scraping article %s", story[STORY_TITLE])
-            story_dict['title'] = story[STORY_TITLE]
-            story_dict['caption'] = story[STORY_SUMMARY]
-            story_dict['url'] = story[STORY_URL]
+        if ({c.STORY_TITLE, STORY_SUMMARY, c.STORY_URL} <= story.keys()):
+            logging.info("NPR: Scraping article %s", story[c.STORY_TITLE])
+            story_dict[c.STORY_TITLE] = story[c.STORY_TITLE]
+            story_dict[c.STORY_CAPTION] = story[STORY_SUMMARY]
+            story_dict[c.STORY_URL] = story[c.STORY_URL]
         else:
-            logging.warning("NPR: Story missing title, caption, or url. Skipping")
+            logging.warning("NPR: Story missing some components, not added")
             continue
 
         try: 
-            article = Article(story[STORY_URL])
+            article = Article(story[c.STORY_URL])
             article.build()
 
         except Article.ArticleException as e: 
@@ -84,16 +72,19 @@ def scrape_npr():
             continue
 
         tags = []
-        if STORY_TAGS in story.keys():
-            tags.extend(story[STORY_TAGS])
+        if c.STORY_TAGS in story.keys():
+            tags.extend(story[c.STORY_TAGS])
         tags.extend(article.keywords)
-        story_dict['tags'] = tags
+        story_dict[c.STORY_TAGS] = tags
 
-        story_dict['source'] = STORY_SOURCE
+        story_dict[c.STORY_SOURCE] = c.STORY_SOURCE
         if (article.has_top_image):
-            story_dict['img'] = article.top_image
+            story_dict[c.STORY_IMG] = article.top_image
 
-        story_list.append(story_dict)
+        if (has_all_components(story_dict)):
+            story_list.append(story_dict)
+        else:
+            logging.warning("NPR: Story missing some components, not added")
 
     
     return story_list

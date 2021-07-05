@@ -1,9 +1,8 @@
 from newspaper import Article
 from bs4 import BeautifulSoup
 import logging
-#please figure out why these don't work when run in-class
 import util.constants as c
-from util.functions import send_request
+from util.functions import send_request, has_all_components
 
 """
 Scrapes the front page of nbc and turns each article into an article dictionary, storing
@@ -15,6 +14,9 @@ it in a list. Each dictionary has key/value pairs:
     tags: newspaper-given tags
     source: website story was retrieved from, nbc
     img: header image, optional
+
+NBC request gives the actual homepage as html file. Section STORY_CLASS has all relevant story
+information. Relevant attributes need to be extracted via BeautifulSoup html parsing.
 """
 
 NBC_LINK = "https://www.nbcnews.com/"
@@ -30,18 +32,17 @@ def scrape_nbc():
     story_list = []
     request = send_request(NBC_LINK, NBC)
     if request == None:
+        logging.critical("NBC: Unable to request NBC site")
         return
 
     html_response = BeautifulSoup(request.text, c.PARSER)
+    stories = html_response.find_all(class_=STORY_CLASS)
 
-    for story in html_response.find_all(class_=STORY_CLASS):
+    for story in stories:
         story_dict = {}
 
         story_dict[c.STORY_URL] = story.find(c.ANCHOR_TAG).get(c.HREF_TAG)
         story_request = send_request(story_dict[c.STORY_URL], NBC)
-        if request == None:
-            logging.warning("NBC: Unable to generate request for article URL %s", story_dict[c.STORY_URL])
-            continue
 
         html_response = BeautifulSoup(story_request.text, c.PARSER)
 
@@ -53,10 +54,12 @@ def scrape_nbc():
         article = Article(story_dict[c.STORY_URL])
         article.build()
 
-
         story_dict[c.STORY_TAGS] = article.keywords
         story_dict[c.STORY_SOURCE] = NBC
 
-        story_list.append(story_dict)
+        if (has_all_components(story_dict)):
+            story_list.append(story_dict)
+        else:
+            logging.warning("NBC: Story missing some components, not added")
     
     return story_list
