@@ -1,4 +1,3 @@
-from newspaper import Article
 from bs4 import BeautifulSoup
 import logging
 
@@ -6,18 +5,13 @@ import src.util.constants as c
 from src.util.functions import send_request, has_all_components
 
 """
-Scrapes the front page of nbc and turns each article into an article dictionary, storing
-it in a list. Each dictionary has key/value pairs:
+NBC request gives the actual homepage as html file. Section STORY_CLASS has all relevant story
+information. Relevant attributes need to be extracted via BeautifulSoup html parsing.
 
     title: Title of article
     caption: NBC-given summary of article
     url: page url
-    tags: newspaper-given tags
     source: website story was retrieved from, nbc
-    img: header image, optional
-
-NBC request gives the actual homepage as html file. Section STORY_CLASS has all relevant story
-information. Relevant attributes need to be extracted via BeautifulSoup html parsing.
 """
 
 NBC_LINK = "https://www.nbcnews.com/"
@@ -25,7 +19,6 @@ NBC = 'nbc'
 
 STORY_CLASS = "alacarte__image-wrapper"
 CAPTION_PROPERTY = "og:description"
-IMAGE_PROPERTY = "og:image"
 CONTENT = "content"
 
 def scrape_nbc():
@@ -50,12 +43,6 @@ def scrape_nbc():
         story_dict[c.STORY_TITLE] = html_response.title.string
         logging.info("NBC: Scraping article %s", story_dict[c.STORY_TITLE])
         story_dict[c.STORY_CAPTION] = (html_response.find(property=CAPTION_PROPERTY)).get(CONTENT)
-        story_dict[c.STORY_IMG] = (html_response.find(property=IMAGE_PROPERTY).get(CONTENT))
-
-        article = Article(story_dict[c.STORY_URL])
-        article.build()
-
-        story_dict[c.STORY_TAGS] = article.keywords
         story_dict[c.STORY_SOURCE] = NBC
 
         if (has_all_components(story_dict)):
