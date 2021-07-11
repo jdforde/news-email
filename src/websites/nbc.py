@@ -22,11 +22,11 @@ CAPTION_PROPERTY = "og:description"
 CONTENT = "content"
 
 def scrape_nbc():
-    logging.info("NBC:Starting web-scraping")
+    logging.info("Starting web-scraping")
     story_list = []
     request = send_request(NBC_LINK, NBC)
-    if request == None:
-        logging.critical("NBC: Unable to request NBC site")
+    if not request:
+        logging.critical("Unable to request NBC site")
         return
 
     html_response = BeautifulSoup(request.text, c.PARSER)
@@ -37,17 +37,19 @@ def scrape_nbc():
 
         story_dict[c.STORY_URL] = story.find(c.ANCHOR_TAG).get(c.HREF_TAG)
         story_request = send_request(story_dict[c.STORY_URL], NBC)
-
+        if not story_request:
+            logging.error("unable to get response for story")
+            continue
         html_response = BeautifulSoup(story_request.text, c.PARSER)
 
         story_dict[c.STORY_TITLE] = html_response.title.string
-        logging.info("NBC: Scraping article %s", story_dict[c.STORY_TITLE])
+        logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
         story_dict[c.STORY_CAPTION] = (html_response.find(property=CAPTION_PROPERTY)).get(CONTENT)
         story_dict[c.STORY_SOURCE] = NBC
 
         if (has_all_components(story_dict)):
             story_list.append(story_dict)
         else:
-            logging.warning("NBC: Story missing some components, not added")
+            logging.warning("Story missing some components, not added")
     
     return story_list

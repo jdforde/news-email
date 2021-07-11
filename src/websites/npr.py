@@ -26,17 +26,17 @@ VIDEO_ARTICLE = "VIDEO"
 STORY_SUMMARY = "summary"
 
 def scrape_npr():
-    logging.info("NPR:Starting web-scraping")
+    logging.info("Starting web-scraping")
 
     npr_request = send_request(NPR_LINK, NPR)
     if npr_request == None:
-        logging.critical("NPR: Unable to request NPR site")
+        logging.critical("Unable to request NPR site")
         return
 
     np_result = re.search(FEEDS_REGEX, npr_request.text)
     json_request = send_request(np_result.group(0), NPR)
     if json_request == None:
-        logging.critical("NPR: Unable to request NPR json")
+        logging.critical("Unable to request NPR json")
         return
 
     stories = json.loads(json_request.text).get(ITEMS)
@@ -45,24 +45,24 @@ def scrape_npr():
 
     for story in stories:
         if VIDEO_ARTICLE in story[c.STORY_TITLE]:
-            logging.info("NPR: Skipping video article")
+            logging.info("Skipping video article")
             continue
 
         story_dict = {}
         if ({c.STORY_TITLE, STORY_SUMMARY, c.STORY_URL} <= story.keys()):
-            logging.info("NPR: Scraping article %s", story[c.STORY_TITLE])
+            logging.info("Scraping article %s", story[c.STORY_TITLE])
             story_dict[c.STORY_TITLE] = story[c.STORY_TITLE]
             story_dict[c.STORY_CAPTION] = story[STORY_SUMMARY]
             story_dict[c.STORY_URL] = story[c.STORY_URL]
             story_dict[c.STORY_SOURCE] = NPR
         else:
-            logging.warning("NPR: Story missing some components, not added")
+            logging.warning("Story missing some components, not added")
             continue
 
         if (has_all_components(story_dict)):
             story_list.append(story_dict)
         else:
-            logging.warning("NPR: Story missing some components, not added")
+            logging.warning("Story missing some components, not added")
 
     
     return story_list

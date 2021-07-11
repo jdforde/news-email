@@ -10,3 +10,5 @@ PARSER = "html.parser"
 ANCHOR_TAG = "a"
 HREF_TAG = "href"
 
+PATH_TO_CHROMEDRIVER = "C:\\Users\\Jakob\\Downloads\\chromedriver.exe"\
+    
