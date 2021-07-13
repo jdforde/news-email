@@ -19,7 +19,7 @@ can be read as dictionaries.
 
 NPR_LINK = "https://www.npr.org/"
 NPR = "npr"
-FEEDS_REGEX = "https://feeds.npr.org/feeds/100[0-9]/feed.json" #this is a guess
+FEEDS_REGEX = "https://feeds.npr.org/feeds/100[0-9]/feed.json"
 
 ITEMS = "items"
 VIDEO_ARTICLE = "VIDEO"
