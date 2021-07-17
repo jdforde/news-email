@@ -2,6 +2,7 @@ from selenium import webdriver
 from selenium.common import exceptions
 import requests
 import logging
+import json
 
 
 import src.util.constants as c
@@ -53,8 +54,23 @@ def send_selenium_request(link, source, options=''):
         return
     
     return response
+
 def has_all_components(story_dict):
     if (story_dict[c.STORY_URL] and story_dict[c.STORY_TITLE] and story_dict[c.STORY_CAPTION] and story_dict[c.STORY_SOURCE]):
         return True
     else:
         return False
+
+def cache(all_stories, filename):
+    with open(filename, "w") as f:
+        json.dump(json.dumps(all_stories), f)
+
+
+def read_cache(filename):
+    try:
+        with open(filename, "r") as f:
+            all_list = json.load(f)
+        return json.loads(all_list)
+    except FileNotFoundError:
+        logging.error("File \"all_stories\" cannot be found")
+        return []
