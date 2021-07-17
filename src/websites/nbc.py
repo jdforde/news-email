@@ -36,6 +36,11 @@ def scrape_nbc():
         story_dict = {}
 
         story_dict[c.STORY_URL] = story.find(c.ANCHOR_TAG).get(c.HREF_TAG)
+
+        if not story_dict[c.STORY_URL].startswith(NBC_LINK):
+            logging.warning("Skipping story with incorrect URL: %s", story_dict[c.STORY_URL])
+            continue
+        
         story_request = send_request(story_dict[c.STORY_URL], NBC)
         if not story_request:
             logging.error("unable to get response for story")

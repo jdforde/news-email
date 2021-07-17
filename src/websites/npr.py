@@ -48,6 +48,10 @@ def scrape_npr():
             logging.info("Skipping video article")
             continue
 
+        if not story[c.STORY_URL].startswith(NPR_LINK):
+            logging.warning("Skipping story with incorrect URL: %s", story[c.STORY_URL])
+            continue
+
         story_dict = {}
         if ({c.STORY_TITLE, STORY_SUMMARY, c.STORY_URL} <= story.keys()):
             logging.info("Scraping article %s", story[c.STORY_TITLE])

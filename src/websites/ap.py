@@ -42,8 +42,12 @@ def scrape_ap():
             if story[c.STORY_URL] == story_url:
                 skip = True
                 logging.info("Skipping repeated article.")
+                break
 
         if not skip:
+            if not story_url.startswith(AP_LINK):
+                logging.warning("Skipping story with incorrect URL: %s", story_url)
+                continue
             story_dict = {}
             story_request = send_request(story_url, AP)
             html_response = BeautifulSoup(story_request.text, c.PARSER)

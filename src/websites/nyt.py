@@ -16,6 +16,7 @@ of the stories. Using ElementTree, relevant values are extracted and put into st
 """
 
 NYT_LINK = "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"
+NYT_WEBSITE = "https://www.nytimes.com/"
 NYT = 'nyt'
 XML_STORY_STRUCTURE = "channel/item"
 STORY_DESCRIPTION = "description"
@@ -35,6 +36,9 @@ def scrape_nyt():
 
     for item in stories:
         story_dict = {}
+        if not item.find(LINK_PROPERTY).text.startswith(NYT_WEBSITE):
+            logging.warning("Skipping story with incorrect URL: %s", item.find(LINK_PROPERTY).text)
+            continue
 
         story_dict[c.STORY_TITLE] = item.find(c.STORY_TITLE).text
         logging.info("Scraping article %s", story_dict[c.STORY_TITLE])

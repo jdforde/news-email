@@ -31,6 +31,9 @@ def scrape_yahoo():
             stories.append(YAHOO_LINK[:-1] + link.get(c.HREF_TAG))
     
     for story in stories:
+        if not story.startswith(YAHOO_LINK):
+            logging.warning("Skipping story with incorrect URL: %s", story)
+            continue
         story_dict = {}
         story_dict[c.STORY_URL] = story
         story_dict[c.STORY_SOURCE] = YAHOO

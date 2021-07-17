@@ -20,17 +20,28 @@ from sumy.summarizers.text_rank import TextRankSummarizer
 
 """
 Work to do:
-Scrape another site
-Create test cases for utils
-Figure out what __init__.py is
-Improve story-selecting algorithm, perhaps introduce some balancing of story sources
-Try to get tensor's summarizer to work so we have fewer dependencies
-Fix double logging error
-Multithreading to speed this process up
-Fix NYT bug... make sure ALL urls processed are starting with https://nyt or whatever the link is
+- Scrape another site
+- Create test cases for utils
+- Figure out what __init__.py is
+- Improve story-selecting algorithm, perhaps introduce some balancing of story sources
+- Try to get tensor's summarizer to work so we have fewer dependencies
+- Think about changing structure of mockup_generator, seems like a lot for one file and it's not
+    very well organized
+- Multithreading to speed this process up
+- Read about tensor and what is actually going on 
+- Fix NYT bug... make sure ALL urls processed are starting with https://nyt or whatever the link is
 """
+logger = logging.getLogger()
+logger.propagate = False
+logger.setLevel(logging.INFO)
+
+log = logging.StreamHandler()
+formatter = logging.Formatter('%(levelname)s %(asctime)s : %(filename)s : %(funcName)s :: %(message)s', "%Y-%m-%d %H:%M:%S")
+log.setFormatter(formatter)
+logger.addHandler(log)
 
 all_stories = []
+mockup = []
 WEBSITE_REGEX = "_(.*?)\(\)"
 websites = ["scrape_npr()", "scrape_nbc()", "scrape_nyt()", "scrape_ap()", "scrape_yahoo()"]
 SIMILARITY_CONSTANT = .35 #This is a guess
@@ -58,14 +69,6 @@ def len_summary(article_text):
         len_summary = 1
     return len_summary
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-log = logging.StreamHandler()
-formatter = logging.Formatter('%(levelname)s %(asctime)s : %(filename)s : %(funcName)s :: %(message)s', "%Y-%m-%d %H:%M:%S")
-log.setFormatter(formatter)
-logger.addHandler(log)
-
 total_time = time.time()
 
 for website in websites:
@@ -80,7 +83,7 @@ for website in websites:
 
 logging.info("Finished scraping all stories in %f seconds", time.time() - total_time)
 
-
+logging.info("Scoring all stories")
 total_time = time.time()
 for story1 in all_stories:
     story1_embed = embed([story1[c.STORY_TITLE]])
@@ -90,12 +93,10 @@ for story1 in all_stories:
         score += np.inner(story1_embed, story2_embed)
 
     story1[c.STORY_SCORE] = score[0][0].astype(float)
-    logging.info("Story %s has score %f", story1[c.STORY_TITLE], story1[c.STORY_SCORE])
 
 logging.info("Finished scoring stories in %f seconds", time.time() - total_time)
 logging.info("Generating mockup")
 
-mockup = []
 sorted_stories = sorted(all_stories, key = lambda i: i[c.STORY_SCORE], reverse=True)
 for story in sorted_stories:
     if not(too_similar(mockup, story)):
