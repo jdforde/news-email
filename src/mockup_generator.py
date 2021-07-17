@@ -9,6 +9,7 @@ from websites.npr import scrape_npr
 from websites.nbc import scrape_nbc
 from websites.nyt import scrape_nyt
 from websites.ap import scrape_ap
+from websites.propublica import scrape_propublica
 import src.util.constants as c
 
 import tensorflow_hub as hub
@@ -23,13 +24,14 @@ Work to do:
 - Scrape another site
 - Create test cases for utils
 - Figure out what __init__.py is
-- Improve story-selecting algorithm, perhaps introduce some balancing of story sources
+- Improve story-selecting algorithm, introduce some balancing of story sources
 - Try to get tensor's summarizer to work so we have fewer dependencies
 - Think about changing structure of mockup_generator, seems like a lot for one file and it's not
     very well organized
 - Multithreading to speed this process up
 - Read about tensor and what is actually going on 
-- Fix NYT bug... make sure ALL urls processed are starting with https://nyt or whatever the link is
+- Get rid of or understand what the tensor stuff at the beginning is
+- Code cleanup
 """
 logger = logging.getLogger()
 logger.propagate = False
@@ -43,7 +45,7 @@ logger.addHandler(log)
 all_stories = []
 mockup = []
 WEBSITE_REGEX = "_(.*?)\(\)"
-websites = ["scrape_npr()", "scrape_nbc()", "scrape_nyt()", "scrape_ap()", "scrape_yahoo()"]
+websites = ["scrape_npr()", "scrape_nbc()", "scrape_nyt()", "scrape_ap()", "scrape_yahoo()", "scrape_propublica()"]
 SIMILARITY_CONSTANT = .35 #This is a guess
 module_url = "https://tfhub.dev/google/universal-sentence-encoder/4"
 model = hub.load(module_url)
@@ -81,7 +83,7 @@ for website in websites:
     else:
         logger.critical("Unable to add %s to all_stories", re.search(WEBSITE_REGEX, website).group(1))
 
-logging.info("Finished scraping all stories in %f seconds", time.time() - total_time)
+logging.info("Finished scraping all %d stories in %f seconds", len(all_stories), time.time() - total_time)
 
 logging.info("Scoring all stories")
 total_time = time.time()
@@ -101,7 +103,7 @@ sorted_stories = sorted(all_stories, key = lambda i: i[c.STORY_SCORE], reverse=T
 for story in sorted_stories:
     if not(too_similar(mockup, story)):
         mockup.append(story)
-        if(len(mockup) >=12 ):
+        if(len(mockup) >=16 ):
             break
 
 if (len(mockup) < 12):
@@ -114,7 +116,8 @@ for story in mockup:
     article.build()
     story[c.STORY_TEXT] = article.text
     parser = PlaintextParser.from_string(article.text, tokenizer)
-    summary = tr_summarizer(parser.document, len_summary(article.text)+2 if story == headline 
-        else len_summary(article.text))
+    summary = tr_summarizer(parser.document, len_summary(article.text) if story != headline 
+        else len_summary(article.text)+2)
+    print(story[c.STORY_SOURCE])
 
 logging.info("Finished mockup summaries in %f seconds", time.time() - total_time)
