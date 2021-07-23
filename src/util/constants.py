@@ -13,5 +13,7 @@ PARSER = "html.parser"
 ANCHOR_TAG = "a"
 HREF_TAG = "href"
 
-PATH_TO_CHROMEDRIVER = "C:\\Users\\Jakob\\Downloads\\chromedriver.exe"\
+PATH_TO_CHROMEDRIVER = "C:\\Users\\Jakob\\Downloads\\chromedriver.exe"
+
+IMPORTANT_NAMES = ["pelosi", "trump", "kavanaugh"] 
     
