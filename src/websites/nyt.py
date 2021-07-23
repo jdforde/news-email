@@ -38,7 +38,7 @@ def scrape_nyt():
     regex = NYT_LINK + str(TODAY.year) + "/" + "{:02}".format(TODAY.month) + "/" + "{:02}".format(TODAY.day) 
 
     request = send_request(NYT_LINK, NYT)
-    if request == None:
+    if not request:
         logging.critical("Unable to request NYT site")
     
     soup = BeautifulSoup(request.text, c.PARSER)

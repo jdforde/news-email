@@ -23,45 +23,38 @@ CAPTION_PROPERTY = "og:description"
 CONTENT = "content"
 
 def scrape_ap():
+    stories = []
     story_list = []
-    args = ['--ignore-certificate-errors-spki-list', '--ignore-certificate-errors', '--ignore-ssl-errors']
-    page_source = send_selenium_request(AP_LINK, AP, args)
-    if not page_source:
+    logging.info("Starting web-scraping")
+
+    request = send_request(AP_LINK, AP)
+    if not request:
         logging.critical("Unable to request AP site")
         return
-    soup = BeautifulSoup(page_source, c.PARSER)
-
-    stories = []
+    
+    soup = BeautifulSoup(request.text, c.PARSER)
     for link in soup.find_all(c.ANCHOR_TAG):
-        if link.get(c.HREF_TAG).startswith(ARTICLE):
+        if link.get(c.HREF_TAG).startswith(ARTICLE) and AP_LINK[:-1] + link.get(c.HREF_TAG) not in stories:
             stories.append(AP_LINK[:-1] + link.get(c.HREF_TAG))
-
+    
     for story_url in stories:
-        skip = False
-        for story in story_list:
-            if story[c.STORY_URL] == story_url:
-                skip = True
-                logging.info("Skipping repeated article.")
-                break
+        story_dict = {}
+        story_dict[c.STORY_URL] = story_url
+        story_dict[c.STORY_SOURCE] = AP
 
-        if not skip:
-            if not story_url.startswith(AP_LINK):
-                logging.warning("Skipping story with incorrect URL: %s", story_url)
-                continue
-            story_dict = {}
-            story_request = send_request(story_url, AP)
-            html_response = BeautifulSoup(story_request.text, c.PARSER)
+        story_request = send_request(story_url, AP)
+        if not story_request:
+            logging.error("Unable to get response for story")
+            continue
+        
+        html_response = BeautifulSoup(story_request.text, c.PARSER)
+        story_dict[c.STORY_TITLE] = html_response.title.string
+        logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
+        story_dict[c.STORY_CAPTION] = html_response.find(property=CAPTION_PROPERTY).get(CONTENT)
 
-            story_dict[c.STORY_TITLE] = html_response.title.string
-            logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
-            story_dict[c.STORY_CAPTION] = html_response.find(property=CAPTION_PROPERTY).get(CONTENT)
-            story_dict[c.STORY_SOURCE] = AP
-            story_dict[c.STORY_URL] = story_url
+        if (has_all_components(story_dict)):
+            story_list.append(story_dict)
+        else:
+            logging.warning("Story missing some components, not added")
 
-
-            if (has_all_components(story_dict)):
-                story_list.append(story_dict)
-            else:
-                logging.warning("Story missing some components, not added")
-            
     return story_list
