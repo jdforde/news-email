@@ -5,18 +5,17 @@ from src.util.functions import send_request, has_all_components
 import src.util.constants as c
 
 """
-A simple request from Yahoo reveals some of the many articles on the website. Note that the order
+A simple request from Propublica reveals some of the many articles on the website. Note that the order
 of stories is not by importance, so there is no "headline" story
     title: Title of article
-    caption: Yahoo-given summary of article
+    caption: Propublica-given summary of article
     url: page url
-    source: website story was retrieved from, yahoo
+    source: website story was retrieved from, Propublica
 """
 PROPUBLICA_LINK = "https://www.propublica.org/"
 PROPUBLICA = 'propublica'
 ARTICLE_ROUTE = "/article/"
 H2 = 'h2'
-
 
 def scrape_propublica():
     stories = []
@@ -42,7 +41,7 @@ def scrape_propublica():
             continue
         html_response = BeautifulSoup(story_request.text, c.PARSER)
 
-        story_dict[c.STORY_TITLE] = html_response.title.string
+        story_dict[c.STORY_TITLE] = html_response.title.string[:-13] #gets rid of " - ProPublica"
         logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
         story_dict[c.STORY_CAPTION] = html_response.find(H2).text.lstrip().rstrip()
 
