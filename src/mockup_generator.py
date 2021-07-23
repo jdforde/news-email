@@ -21,17 +21,13 @@ from websites.yahoo import scrape_yahoo
 """
 Work to do:
 - Scrape one more site
-- Create test cases for utils
 - Figure out what __init__.py is
 - Try to get tensor's summarizer to work so we have fewer dependencies
 - Multithreading to speed this process up
 - Read about tensor and what is actually going on 
-- Get rid of or understand what the tensor stuff at the beginning is
-- Improve scoring
+- Improve scoring speed
 - Code cleanup
     drop selenium
-    get rid of "probublica" at end of propublica article titles
-    nyt is only getting like 6 stories
 - Drop newspaper dependency
 - Cleanup this from websites.x import scrape_x depencency thing. Will get messy fast
 """
@@ -144,7 +140,6 @@ def mockup_generator():
         story[c.STORY_SUMMARY] = summary
 
     logging.info("Finished generating mockup in %f seconds", time.time() - activity_time)
-
 
 if __name__ == '__main__':
     mockup_generator()
