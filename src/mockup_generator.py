@@ -26,9 +26,7 @@ Work to do:
 - Multithreading to speed this process up
 - Read about tensor and what is actually going on 
 - Improve scoring speed
-- Code cleanup
-    drop selenium
-- Drop newspaper dependency
+- Consider scraping a different page of NYT to get more articles
 - Cleanup this from websites.x import scrape_x depencency thing. Will get messy fast
 """
 logger = logging.getLogger()
@@ -66,7 +64,7 @@ def conflict(mockup, toadd):
     names_to_add = []
     for story in mockup:
         story_embed = embed([story[c.STORY_TITLE]])
-        if (np.inner(toadd_embed, story_embed > SIMILARITY_CONSTANT)):
+        if (np.inner(toadd_embed, story_embed) > SIMILARITY_CONSTANT):
             return True
         
         if story[c.STORY_SOURCE] == toadd[c.STORY_SOURCE]:
@@ -134,11 +132,14 @@ def mockup_generator():
         article = Article(story[c.STORY_URL])
         article.build()
         story[c.STORY_TEXT] = article.text
-        parser = PlaintextParser.from_string(article.text, TOKENIZER)
-        summary = tr_summarizer(parser.document, len_summary(article.text) if story != headline 
-            else len_summary(article.text)+2)
-        story[c.STORY_SUMMARY] = summary
-
+        if article.has_top_image:
+            story[c.STORY_IMAGE] = article.top_image
+        # parser = PlaintextParser.from_string(article.text, TOKENIZER)
+        # summary = tr_summarizer(parser.document, len_summary(article.text) if story != headline 
+        #     else len_summary(article.text)+2)
+        # story[c.STORY_SUMMARY] = summary
+    
+    cache(mockup, "mockup.txt")
     logging.info("Finished generating mockup in %f seconds", time.time() - activity_time)
 
 if __name__ == '__main__':

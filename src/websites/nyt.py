@@ -1,34 +1,23 @@
-import xml.etree.ElementTree as ET
 import logging
 from bs4 import BeautifulSoup
 from datetime import date
 
 import src.util.constants as c
-from src.util.functions import send_request, has_all_components
-
+from src.util.functions import send_request, has_all_components, in_category
 
 """
-A simple request to NYT reveals some of the many articles on the website.
-
     title: Title of article
     caption: NYT-given summary of article
     url: page url
-    source: website story was retrieved from, nbc
+    source: website story was retrieved from, nyt
+    image: url to story image, optional
+    text: story text
 """
 
 NYT_LINK = "https://www.nytimes.com/"
 CATEGORIES = ["/opinion/", "/sports/", "/arts/"]
 NYT = 'nyt'
-DESCRIPTION = "og:description"
-CONTENT = "content"
 TODAY = date.today()
-
-def in_category(tag):
-    for category in CATEGORIES:
-        if category in tag:
-            return True
-
-    return False
 
 def scrape_nyt():
     stories = []
@@ -43,14 +32,10 @@ def scrape_nyt():
     
     soup = BeautifulSoup(request.text, c.PARSER)
     for link in soup.find_all(c.ANCHOR_TAG):
-        if link.get(c.HREF_TAG).startswith(regex) and not in_category(link.get(c.HREF_TAG)) and link.get(c.HREF_TAG) not in stories:
+        if link.get(c.HREF_TAG).startswith(regex) and not in_category(link.get(c.HREF_TAG), CATEGORIES) and link.get(c.HREF_TAG) not in stories:
             stories.append(link.get(c.HREF_TAG))
     
     for story_url in stories:
-        if not story_url.startswith(NYT_LINK):
-            logging.warning("Skipping story with incorrect URL: %s", story_url)
-            continue
-
         story_dict = {}
         story_dict[c.STORY_URL] = story_url
         story_dict[c.STORY_SOURCE] = NYT
@@ -63,7 +48,7 @@ def scrape_nyt():
 
         story_dict[c.STORY_TITLE] = html_response.title.string[:-21] #gets rid of - The New York Times
         logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
-        story_dict[c.STORY_CAPTION] = html_response.find(property=DESCRIPTION).get(CONTENT)
+        story_dict[c.STORY_CAPTION] = html_response.find(property=c.CAPTION_PROPERTY).get(c.CONTENT_PROPERTY)
 
         if (has_all_components(story_dict)):
             story_list.append(story_dict)

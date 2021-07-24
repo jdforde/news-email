@@ -1,13 +1,11 @@
 from bs4 import BeautifulSoup
 import logging
+import re
 
 import src.util.constants as c
-from src.util.functions import send_request, has_all_components
+from src.util.functions import send_request, has_all_components, in_category
 
 """
-NBC request gives the actual homepage as html file. Section STORY_CLASS has all relevant story
-information. Relevant attributes need to be extracted via BeautifulSoup html parsing.
-
     title: Title of article
     caption: NBC-given summary of article
     url: page url
@@ -15,46 +13,52 @@ information. Relevant attributes need to be extracted via BeautifulSoup html par
 """
 
 NBC_LINK = "https://www.nbcnews.com/"
+CATEGORIES = ["/sports/", "/pop-culture/", "/science/", "/opinion/", "/video/", "/shopping/", "/slideshow/", "/specials/"]
+STORY_CLASS = "layout-container zone-a-margin lead-type--threeUp"
+REGEX = "-.*[1-9]+$"
 NBC = 'nbc'
+AFFILIATES = "-affiliates-"
 
-STORY_CLASS = "alacarte__image-wrapper"
-CAPTION_PROPERTY = "og:description"
-CONTENT = "content"
 
 def scrape_nbc():
-    logging.info("Starting web-scraping")
+    stories = []
     story_list = []
+    logging.info("Starting web-scraping")
+    
     request = send_request(NBC_LINK, NBC)
     if not request:
         logging.critical("Unable to request NBC site")
         return
 
+
     html_response = BeautifulSoup(request.text, c.PARSER)
-    stories = html_response.find_all(class_=STORY_CLASS)
+    for link in html_response.find(class_=STORY_CLASS).find_all(c.ANCHOR_TAG):
+        if link.get(c.HREF_TAG).startswith(NBC_LINK) and not in_category(link.get(c.HREF_TAG), CATEGORIES):
+            if re.search(REGEX, link.get(c.HREF_TAG)) and link.get(c.HREF_TAG) not in stories:
+                stories.append(link.get(c.HREF_TAG))
+    
+    for story_url in stories:
+        if AFFILIATES in story_url:
+            logging.warning("Skipping affiliates page")
+            continue
 
-    for story in stories:
         story_dict = {}
+        story_dict[c.STORY_URL] = story_url
+        story_dict[c.STORY_SOURCE] = NBC    
 
-        story_dict[c.STORY_URL] = story.find(c.ANCHOR_TAG).get(c.HREF_TAG)
-
-        if not story_dict[c.STORY_URL].startswith(NBC_LINK):
-            logging.warning("Skipping story with incorrect URL: %s", story_dict[c.STORY_URL])
+        story_request = send_request(story_url, NBC)
+        if not story_request:
+            logging.error("Unable to get response for story")
             continue
         
-        story_request = send_request(story_dict[c.STORY_URL], NBC)
-        if not story_request:
-            logging.error("unable to get response for story")
-            continue
         html_response = BeautifulSoup(story_request.text, c.PARSER)
-
         story_dict[c.STORY_TITLE] = html_response.title.string
         logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
-        story_dict[c.STORY_CAPTION] = (html_response.find(property=CAPTION_PROPERTY)).get(CONTENT)
-        story_dict[c.STORY_SOURCE] = NBC
+        story_dict[c.STORY_CAPTION] = html_response.find(property=c.CAPTION_PROPERTY).get(c.CONTENT_PROPERTY)
 
         if (has_all_components(story_dict)):
             story_list.append(story_dict)
         else:
             logging.warning("Story missing some components, not added")
-    
+
     return story_list

@@ -1,5 +1,3 @@
-from selenium import webdriver
-from selenium.common import exceptions
 import requests
 import logging
 import json
@@ -28,32 +26,6 @@ def send_request(link, source):
         return
     
     return request
-def send_selenium_request(link, source, options=''):
-    opts = webdriver.ChromeOptions()
-    opts.add_argument("--headless")
-    if options:
-        for arg in options:
-            opts.add_argument(arg)
-    
-    try:
-        driver = webdriver.Chrome(c.PATH_TO_CHROMEDRIVER, options=opts)
-        driver.get(link)
-        response = driver.page_source
-        driver.quit()
-    except exceptions.WebDriverException as e:
-        logging.error("Web driver error occured to %s: %s", source, e)
-        return
-    except exceptions.ErrorInResponseException as e:
-        logging.error("Some error in response from %s: %s", source, e)
-        return
-    except exceptions.InvalidSessionIdException as e:
-        logging.error("Invalid session id for %s: %s", source, e)
-        return
-    except exceptions.TimeoutException as e:
-        logging.error("Website %s did not return a response in requested time: %s", source, e)
-        return
-    
-    return response
 
 def has_all_components(story_dict):
     if (story_dict[c.STORY_URL] and story_dict[c.STORY_TITLE] and story_dict[c.STORY_CAPTION] and story_dict[c.STORY_SOURCE]):
@@ -74,3 +46,10 @@ def read_cache(filename):
     except FileNotFoundError:
         logging.error("File \"all_stories\" cannot be found")
         return []
+
+def in_category(tag, CATEGORIES):
+    for category in CATEGORIES:
+        if category in tag:
+            return True
+
+    return False

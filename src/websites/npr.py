@@ -6,16 +6,11 @@ import src.util.constants as c
 from src.util.functions import send_request, has_all_components
 
 """
-NPR website request gives a feeds json file. The final digit changes often, varying between
-0 and 9. There's a section of feeds called "items" which contains all stories. The json stories
-can be read as dictionaries. 
-
     title: Title of article
     caption: NPR-given summary of article
     url: page url
     source: website story was retrieved from, npr
 """
-
 
 NPR_LINK = "https://www.npr.org/"
 NPR = "npr"

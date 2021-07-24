@@ -4,8 +4,6 @@ import logging
 from src.util.functions import send_request, has_all_components
 import src.util.constants as c
 """
-A simple request from Yahoo reveals some of the many articles on the website. Note that the order
-of stories is not by importance, so there is no "headline" story
     title: Title of article
     caption: Yahoo-given summary of article
     url: page url
