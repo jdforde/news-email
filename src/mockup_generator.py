@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow_hub as hub
 from newspaper import Article
 
-from src.util.functions import cache, read_cache
+from src.util.functions import cache
 import src.util.constants as c
 from websites import *
 
@@ -31,8 +31,8 @@ logger.addHandler(log)
 MOCKUP_LEN = 16
 WEBSITE_REGEX = r"_(.*?)\(\)"
 WEBSITES = ["scrape_npr()", "scrape_nbc()", "scrape_nyt()", "scrape_ap()", "scrape_yahoo()", "scrape_propublica()"]
-SIMILARITY_CONSTANT = .2 #This is a guess
-UNDER_THRESHOLD = .25 #this is related to number of websites, so must change dynamically but this is good for 6 sites
+SIMILARITY_CONSTANT = .2
+UNDER_THRESHOLD = len(WEBSITES)/24
 MODULE_URL = "https://tfhub.dev/google/universal-sentence-encoder/4"
 MODEL = hub.load(MODULE_URL)
 
@@ -73,9 +73,9 @@ def conflict(mockup, toadd):
     return ((story_count)/MOCKUP_LEN) > UNDER_THRESHOLD
 
 def mockup_generator():
+    print(UNDER_THRESHOLD)
     all_stories = []
     mockup = []
-
 
     activity_time = time.time()
     for website in WEBSITES:
@@ -115,17 +115,12 @@ def mockup_generator():
     if (len(mockup) < MOCKUP_LEN):
         logging.critical("Unable to add at least %s stories to mockup", MOCKUP_LEN)
 
-    headline = mockup[0]
     for story in mockup:
         article = Article(story[c.STORY_URL])
         article.build()
         story[c.STORY_TEXT] = article.text
         if article.has_top_image:
             story[c.STORY_IMAGE] = article.top_image
-        # parser = PlaintextParser.from_string(article.text, TOKENIZER)
-        # summary = tr_summarizer(parser.document, len_summary(article.text) if story != headline 
-        #     else len_summary(article.text)+2)
-        # story[c.STORY_SUMMARY] = summary
     
     cache(mockup, "mockup.txt")
     logging.info("Finished generating mockup in %f seconds", time.time() - activity_time)
