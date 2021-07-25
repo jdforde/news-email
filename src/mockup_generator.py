@@ -5,29 +5,19 @@ import time
 import numpy as np
 import tensorflow_hub as hub
 from newspaper import Article
-from sumy.nlp.tokenizers import Tokenizer
-from sumy.parsers.plaintext import PlaintextParser
-from sumy.summarizers.text_rank import TextRankSummarizer
 
 from src.util.functions import cache, read_cache
 import src.util.constants as c
-from websites.ap import scrape_ap
-from websites.nbc import scrape_nbc
-from websites.npr import scrape_npr
-from websites.nyt import scrape_nyt
-from websites.propublica import scrape_propublica
-from websites.yahoo import scrape_yahoo
+from websites import *
 
 """
 Work to do:
 - Scrape one more site
-- Figure out what __init__.py is
 - Try to get tensor's summarizer to work so we have fewer dependencies
 - Multithreading to speed this process up
 - Read about tensor and what is actually going on 
 - Improve scoring speed
 - Consider scraping a different page of NYT to get more articles
-- Cleanup this from websites.x import scrape_x depencency thing. Will get messy fast
 """
 logger = logging.getLogger()
 logger.propagate = False
@@ -39,14 +29,12 @@ log.setFormatter(formatter)
 logger.addHandler(log)
 
 MOCKUP_LEN = 16
-WEBSITE_REGEX = "_(.*?)\(\)"
+WEBSITE_REGEX = r"_(.*?)\(\)"
 WEBSITES = ["scrape_npr()", "scrape_nbc()", "scrape_nyt()", "scrape_ap()", "scrape_yahoo()", "scrape_propublica()"]
 SIMILARITY_CONSTANT = .2 #This is a guess
 UNDER_THRESHOLD = .25 #this is related to number of websites, so must change dynamically but this is good for 6 sites
 MODULE_URL = "https://tfhub.dev/google/universal-sentence-encoder/4"
 MODEL = hub.load(MODULE_URL)
-TOKENIZER = Tokenizer("english")
-tr_summarizer = TextRankSummarizer()
 
 def embed(input):
     return MODEL(input)
