@@ -6,22 +6,20 @@ import numpy as np
 import tensorflow_hub as hub
 from newspaper import Article
 
-from src.util.functions import cache
+from src.util.functions import cache, read_cache
 import src.util.constants as c
 from websites import *
 
 """
 Work to do:
-- Scrape one more site
-- Try to get tensor's summarizer to work so we have fewer dependencies
+- Implement tensor's summarizer
 - Multithreading to speed this process up
 - Read about tensor and what is actually going on 
 - Improve scoring speed
-- Consider scraping a different page of NYT to get more articles
 """
 logger = logging.getLogger()
 logger.propagate = False
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.INFO) 
 
 log = logging.StreamHandler()
 formatter = logging.Formatter('%(levelname)s %(asctime)s : %(filename)s : %(funcName)s :: %(message)s', "%Y-%m-%d %H:%M:%S")
@@ -30,7 +28,7 @@ logger.addHandler(log)
 
 MOCKUP_LEN = 16
 WEBSITE_REGEX = r"_(.*?)\(\)"
-WEBSITES = ["scrape_npr()", "scrape_nbc()", "scrape_nyt()", "scrape_ap()", "scrape_yahoo()", "scrape_propublica()"]
+WEBSITES = ["scrape_npr()", "scrape_nbc()", "scrape_nyt()", "scrape_ap()", "scrape_yahoo()", "scrape_propublica()", "scrape_slate()"]
 SIMILARITY_CONSTANT = .2
 UNDER_THRESHOLD = len(WEBSITES)/24
 MODULE_URL = "https://tfhub.dev/google/universal-sentence-encoder/4"
@@ -46,7 +44,7 @@ def len_summary(article_text):
         len_summary = 1
     return len_summary
 
-def conflict(mockup, toadd):
+def conflict(mockup, yesterday_mockup, toadd):
     toadd_embed = embed([toadd[c.STORY_TITLE]])
     story_count = 1
     names_to_add = []
@@ -57,6 +55,10 @@ def conflict(mockup, toadd):
         
         if story[c.STORY_SOURCE] == toadd[c.STORY_SOURCE]:
             story_count+=1
+    
+    for story in yesterday_mockup:
+        if toadd[c.STORY_TITLE] == story[c.STORY_TITLE]:
+            return False
     
     #this is nice but has issues. Consider a story about Jill Biden being more popular than a Biden story
     #thus, the Biden story would not get added
@@ -106,8 +108,10 @@ def mockup_generator():
 
     activity_time = time.time()
     sorted_stories = sorted(all_stories, key = lambda i: i[c.STORY_SCORE], reverse=True)
+
+    yesterday_mockup = read_cache("mockup.txt")
     for story in sorted_stories:
-        if not(conflict(mockup, story)):
+        if not(conflict(mockup, yesterday_mockup, story)):
             mockup.append(story)
         if(len(mockup) == MOCKUP_LEN):
             break
@@ -115,6 +119,7 @@ def mockup_generator():
     if (len(mockup) < MOCKUP_LEN):
         logging.critical("Unable to add at least %s stories to mockup", MOCKUP_LEN)
 
+    
     for story in mockup:
         article = Article(story[c.STORY_URL])
         article.build()
