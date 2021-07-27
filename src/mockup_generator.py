@@ -1,6 +1,8 @@
 import logging
 import re
 import time
+import itertools
+from inspect import getmembers, isfunction
 
 import numpy as np
 import tensorflow_hub as hub
@@ -9,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from src.util.functions import cache, read_cache
 import src.util.constants as c
-from websites import *
+import websites
 
 """
 Work to do:
@@ -25,7 +27,7 @@ log = logging.StreamHandler()
 formatter = logging.Formatter('%(levelname)s %(asctime)s : %(filename)s : %(funcName)s :: %(message)s', "%Y-%m-%d %H:%M:%S")
 log.setFormatter(formatter)
 logger.addHandler(log)
-WEBSITES = [scrape_yahoo, scrape_npr, scrape_nbc, scrape_ap, scrape_propublica, scrape_slate, scrape_nyt]
+WEBSITES = [website[1] for website in getmembers(websites, isfunction)]
 MOCKUP_LEN = 16
 WEBSITE_REGEX = r"_(.*?)\(\)"
 
@@ -95,20 +97,28 @@ def mockup_generator():
     logging.info("Scoring all stories")
 
     activity_time = time.time()
-    for story1 in all_stories:
-        story1_embed = embed([story1[c.STORY_TITLE]])
-        score = 0
-        for story2 in all_stories:
-            story2_embed = embed([story2[c.STORY_TITLE]])
-            score += np.inner(story1_embed, story2_embed)
+    for story in all_stories:
+        story[c.STORY_SCORE] = 0
 
-        story1[c.STORY_SCORE] = score[0][0].astype(float)
+    for story1, story2 in itertools.combinations(all_stories, 2):
+        if not 'embed' in story1.keys():
+            story1['embed'] = embed([story1[c.STORY_TITLE]])
+        if not 'embed' in story2.keys():
+            story2['embed'] = embed([story2[c.STORY_TITLE]])
+        inner_product = np.inner(story1['embed'], story2['embed'])[0][0].astype(float)
+        story1[c.STORY_SCORE] += inner_product
+        story2[c.STORY_SCORE] += inner_product 
+    
+    for story in all_stories:
+        story.pop('embed')
+  
 
     logging.info("Finished scoring stories in %f seconds", time.time() - activity_time)
     logging.info("Generating mockup")
 
     activity_time = time.time()
     sorted_stories = sorted(all_stories, key = lambda i: i[c.STORY_SCORE], reverse=True)
+
 
     yesterday_mockup = read_cache("mockup.txt")
     for story in sorted_stories:

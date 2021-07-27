@@ -39,7 +39,7 @@ def scrape_nbc():
     
     for story_url in stories:
         if AFFILIATES in story_url:
-            logging.warning("Skipping affiliates page")
+            logging.info("Skipping affiliates page")
             continue
 
         story_dict = {}
