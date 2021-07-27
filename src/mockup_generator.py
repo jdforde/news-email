@@ -3,11 +3,14 @@ import re
 import time
 import itertools
 from inspect import getmembers, isfunction
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 import tensorflow_hub as hub
 from newspaper import Article
-from concurrent.futures import ThreadPoolExecutor
+from sumy.nlp.tokenizers import Tokenizer
+from sumy.parsers.plaintext import PlaintextParser
+from sumy.summarizers.text_rank import TextRankSummarizer
 
 from src.util.functions import cache, read_cache
 import src.util.constants as c
@@ -15,9 +18,7 @@ import websites
 
 """
 Work to do:
-- Implement tensor's summarizer
 - Read about tensor and what is actually going on 
-- Improve scoring speed
 """
 logger = logging.getLogger()
 logger.propagate = False
@@ -35,6 +36,9 @@ SIMILARITY_CONSTANT = .2
 UNDER_THRESHOLD = len(WEBSITES)/24
 MODULE_URL = "https://tfhub.dev/google/universal-sentence-encoder/4"
 MODEL = hub.load(MODULE_URL)
+
+TOKENIZER = Tokenizer("english")
+tr_summarizer = TextRankSummarizer()
 
 def embed(input):
     return MODEL(input)
@@ -106,13 +110,13 @@ def mockup_generator():
         if not 'embed' in story2.keys():
             story2['embed'] = embed([story2[c.STORY_TITLE]])
         inner_product = np.inner(story1['embed'], story2['embed'])[0][0].astype(float)
-        story1[c.STORY_SCORE] += inner_product
-        story2[c.STORY_SCORE] += inner_product 
+        if not story1[c.STORY_SOURCE] == story2[c.STORY_SOURCE]:
+            story1[c.STORY_SCORE] += inner_product
+            story2[c.STORY_SCORE] += inner_product 
     
     for story in all_stories:
         story.pop('embed')
   
-
     logging.info("Finished scoring stories in %f seconds", time.time() - activity_time)
     logging.info("Generating mockup")
 
@@ -130,13 +134,17 @@ def mockup_generator():
     if (len(mockup) < MOCKUP_LEN):
         logging.critical("Unable to add at least %s stories to mockup", MOCKUP_LEN)
 
-    
+    headline = mockup[0]
     for story in mockup:
         article = Article(story[c.STORY_URL])
         article.build()
         story[c.STORY_TEXT] = article.text
         if article.has_top_image:
             story[c.STORY_IMAGE] = article.top_image
+        parser = PlaintextParser.from_string(story[c.STORY_TEXT], TOKENIZER)
+        summary = tr_summarizer(parser.document, len_summary(article.text) if story != headline 
+            else len_summary(article.text)+2)
+        story[c.STORY_SUMMARY] = [str(sentence) for sentence in summary]
     
     cache(mockup, "mockup.txt")
     logging.info("Finished generating mockup in %f seconds", time.time() - activity_time)
