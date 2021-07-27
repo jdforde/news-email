@@ -5,6 +5,7 @@ import time
 import numpy as np
 import tensorflow_hub as hub
 from newspaper import Article
+from concurrent.futures import ThreadPoolExecutor
 
 from src.util.functions import cache, read_cache
 import src.util.constants as c
@@ -13,7 +14,6 @@ from websites import *
 """
 Work to do:
 - Implement tensor's summarizer
-- Multithreading to speed this process up
 - Read about tensor and what is actually going on 
 - Improve scoring speed
 """
@@ -25,10 +25,10 @@ log = logging.StreamHandler()
 formatter = logging.Formatter('%(levelname)s %(asctime)s : %(filename)s : %(funcName)s :: %(message)s', "%Y-%m-%d %H:%M:%S")
 log.setFormatter(formatter)
 logger.addHandler(log)
-
+WEBSITES = [scrape_yahoo, scrape_npr, scrape_nbc, scrape_ap, scrape_propublica, scrape_slate, scrape_nyt]
 MOCKUP_LEN = 16
 WEBSITE_REGEX = r"_(.*?)\(\)"
-WEBSITES = ["scrape_npr()", "scrape_nbc()", "scrape_nyt()", "scrape_ap()", "scrape_yahoo()", "scrape_propublica()", "scrape_slate()"]
+
 SIMILARITY_CONSTANT = .2
 UNDER_THRESHOLD = len(WEBSITES)/24
 MODULE_URL = "https://tfhub.dev/google/universal-sentence-encoder/4"
@@ -75,20 +75,21 @@ def conflict(mockup, yesterday_mockup, toadd):
     return ((story_count)/MOCKUP_LEN) > UNDER_THRESHOLD
 
 def mockup_generator():
-    print(UNDER_THRESHOLD)
     all_stories = []
     mockup = []
 
     activity_time = time.time()
-    for website in WEBSITES:
-        start_time = time.time()
-        website_stories = eval(website)
-        if website_stories:
-            logging.info("Finished scraping %s of %d articles in %f seconds", re.search(WEBSITE_REGEX, website).group(1), 
-                len(website_stories), time.time() - start_time)
-            all_stories.extend(website_stories)
+    futures = []
+    with ThreadPoolExecutor(max_workers=len(WEBSITES)) as executor:
+        for website in WEBSITES:
+            future = executor.submit(website)
+            futures.append(future)
+    
+    for future in futures:
+        if future.result():
+            all_stories.extend(future.result())
         else:
-            logger.critical("Unable to add %s to all_stories", re.search(WEBSITE_REGEX, website).group(1))
+            logging.critical("Error with one of the futures. Unable to add stories")
 
     logging.info("Finished scraping all %d stories in %f seconds", len(all_stories), time.time() - activity_time)
     logging.info("Scoring all stories")

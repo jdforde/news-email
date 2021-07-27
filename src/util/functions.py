@@ -44,7 +44,7 @@ def read_cache(filename):
             all_list = json.load(f)
         return json.loads(all_list)
     except FileNotFoundError:
-        logging.error("File \"all_stories\" cannot be found")
+        logging.error("File %s cannot be found. No mockup will be used", filename)
         return []
 
 def in_category(tag, CATEGORIES):
