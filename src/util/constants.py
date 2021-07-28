@@ -9,6 +9,7 @@ STORY_SCORE = "score"
 STORY_TEXT = "text"
 STORY_SUMMARY = "summary"
 STORY_IMAGE = "image"
+STORY_EMBED = "embed" #temporary, used for scoring
 PARSER = "html.parser"
 
 ANCHOR_TAG = "a"
@@ -18,6 +19,3 @@ CAPTION_PROPERTY = "og:description"
 CONTENT_PROPERTY = "content"
 
 PATH_TO_CHROMEDRIVER = "C:\\Users\\Jakob\\Downloads\\chromedriver.exe"
-
-IMPORTANT_NAMES = ["pelosi", "trump", "kavanaugh"] 
-    
