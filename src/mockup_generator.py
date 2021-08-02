@@ -14,7 +14,7 @@ from sumy.summarizers.text_rank import TextRankSummarizer
 
 import src.util.constants as c
 from src.util.functions import cache, read_cache
-import websites
+import src.websites as websites
 
 logger = logging.getLogger()
 logger.propagate = False
@@ -25,13 +25,13 @@ log.setFormatter(formatter)
 logger.addHandler(log)
 
 WEBSITES = [website[1] for website in getmembers(websites, isfunction)]
-MOCKUP_LEN = 16
+MOCKUP_LEN = 10
 WEBSITE_REGEX = r"_(.*?)\(\)"
 CACHED_MOCKUP = "mockup.txt"
 UNDER_THRESHOLD = len(WEBSITES)/24
 
 SIMILARITY_CONSTANT = .2
-MODEL = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
+MODEL = hub.load("USE/")
 
 TOKENIZER = Tokenizer("english")
 tr_summarizer = TextRankSummarizer()
@@ -120,12 +120,9 @@ def mockup_generator():
         if article.has_top_image:
             story[c.STORY_IMAGE] = article.top_image
         parser = PlaintextParser.from_string(story[c.STORY_TEXT], TOKENIZER)
-        summary = tr_summarizer(parser.document, len_summary(article.text) if story != headline 
-            else len_summary(article.text)+2)
+        summary = tr_summarizer(parser.document, 2 if story != headline else 3)
         story[c.STORY_SUMMARY] = [str(sentence) for sentence in summary]
     
     cache(mockup, CACHED_MOCKUP)
     logging.info("Finished generating mockup in {:.2f} seconds".format(time.time() - activity_time))
-
-if __name__ == '__main__':
-    mockup_generator()
+    return mockup

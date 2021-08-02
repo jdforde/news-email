@@ -26,7 +26,7 @@ def scrape_cbs():
     stories = []
     soup = BeautifulSoup(request.text, c.PARSER)
     for link in soup.find_all(class_="item__anchor"):
-        if "/news/" in link.get(c.HREF_TAG) and link.get(c.HREF_TAG) not in stories:
+        if "/news/" in link.get(c.HREF_TAG) and link.get(c.HREF_TAG) not in stories and "48-hours/" not in link.get(c.HREF_TAG):
             stories.append(link.get(c.HREF_TAG))
 
     for story in stories:
@@ -43,6 +43,7 @@ def scrape_cbs():
             continue
         html_response = BeautifulSoup(story_request.text, c.PARSER)
 
+   
         story_dict[c.STORY_TITLE] = html_response.find(class_=TITLE_PROPERTY).text
         logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
         story_dict[c.STORY_CAPTION] = html_response.find(property=CAPTION_PROPERTY).get(CONTENT)

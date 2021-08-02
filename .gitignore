@@ -5,3 +5,5 @@ myvenv
 allstories.txt
 mockup.txt
 readmockup.py
+secret_constants.py
+USE
