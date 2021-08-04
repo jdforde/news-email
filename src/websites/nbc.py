@@ -54,7 +54,11 @@ def scrape_nbc():
         html_response = BeautifulSoup(story_request.text, c.PARSER)
         story_dict[c.STORY_TITLE] = html_response.title.string
         logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
-        story_dict[c.STORY_CAPTION] = html_response.find(property=c.CAPTION_PROPERTY).get(c.CONTENT_PROPERTY)
+        if ("<p>" not in html_response.find(property=c.CAPTION_PROPERTY).get(c.CONTENT_PROPERTY)):
+            story_dict[c.STORY_CAPTION] = html_response.find(property=c.CAPTION_PROPERTY).get(c.CONTENT_PROPERTY)
+        else:
+            logging.warning("Story is malformed, skipping %s", story_url)
+            continue
 
         if (has_all_components(story_dict)):
             story_list.append(story_dict)
@@ -62,3 +66,6 @@ def scrape_nbc():
             logging.warning("Story missing some components, not added")
 
     return story_list
+
+if __name__ == '__main__':
+    scrape_nbc()

@@ -16,14 +16,6 @@ import src.util.constants as c
 from src.util.functions import cache, read_cache
 import src.websites as websites
 
-logger = logging.getLogger()
-logger.propagate = False
-logger.setLevel(logging.INFO) 
-log = logging.StreamHandler()
-formatter = logging.Formatter('%(levelname)s %(asctime)s : %(filename)s : %(funcName)s :: %(message)s', "%Y-%m-%d %H:%M:%S")
-log.setFormatter(formatter)
-logger.addHandler(log)
-
 WEBSITES = [website[1] for website in getmembers(websites, isfunction)]
 MOCKUP_LEN = 10
 WEBSITE_REGEX = r"_(.*?)\(\)"
@@ -112,7 +104,6 @@ def mockup_generator():
     if (len(mockup) < MOCKUP_LEN):
         logging.critical("Unable to add at least {} stories to mockup".format(MOCKUP_LEN))
 
-    headline = mockup[0]
     for story in mockup:
         article = Article(story[c.STORY_URL])
         article.build()
@@ -120,8 +111,8 @@ def mockup_generator():
         if article.has_top_image:
             story[c.STORY_IMAGE] = article.top_image
         parser = PlaintextParser.from_string(story[c.STORY_TEXT], TOKENIZER)
-        summary = tr_summarizer(parser.document, 2 if story != headline else 3)
-        story[c.STORY_SUMMARY] = [str(sentence) for sentence in summary]
+        summary = tr_summarizer(parser.document, 2)
+        story[c.STORY_SUMMARY] = [str(sentence) for sentence in summary if str(sentence)!=story[c.STORY_CAPTION]]
     
     cache(mockup, CACHED_MOCKUP)
     logging.info("Finished generating mockup in {:.2f} seconds".format(time.time() - activity_time))

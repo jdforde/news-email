@@ -20,6 +20,20 @@ CONTENT_PROPERTY = "content"
 
 PATH_TO_CHROMEDRIVER = "C:\\Users\\Jakob\\Downloads\\chromedriver.exe"
 
+month = {
+    1 : "January",
+    2 : "February",
+    3 : "March", 
+    4 : "April",
+    5 : "May",
+    6 : "June",
+    7 : "July",
+    8 : "August",
+    9 : "September",
+    10 : "October",
+    11 : "November",
+    12 : "December"
+}
 
 STATIC_BEGINNING = """
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
