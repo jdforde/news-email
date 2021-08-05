@@ -8,6 +8,12 @@ import src.util.constants as c
     caption: Yahoo-given summary of article
     url: page url
     source: website story was retrieved from, yahoo
+
+    A yahoo caption miss, it took too much:
+    An upset in Ohio on Tuesday night is giving moderate, Biden-aligned Democrats momentum vs. the party's vocal left ahead of next year's midterms. 
+    Driving the news: In a special primary for U.S. House in the Cleveland area, Cuyahoga County Council member Shontel Brown pulled out a surprise victory for the Democratic 
+    establishment in Cleveland.Get market news worthy of your time with Axios Markets. Subscribe for free.The left's stars had come out for her leading opponent, progressive Nina Turner: F 
+    https://news.yahoo.com/ohios-nina-turner-upset-flashes-113420698.html
 """
 YAHOO_LINK = "https://news.yahoo.com/"
 YAHOO = 'yahoo'

@@ -9,6 +9,8 @@ import src.util.constants as c
     caption: AP-given summary of article
     url: page url
     source: website story was retrieved from, ap
+
+    AP captions should not start with: BEIJING (AP) — 
 """
 
 AP_LINK = "https://apnews.com/"
