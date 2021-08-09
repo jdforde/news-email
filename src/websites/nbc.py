@@ -16,7 +16,7 @@ NBC_LINK = "https://www.nbcnews.com/"
 CATEGORIES = ["/sports/", "/pop-culture/", "/science/", "/opinion/", "/video/", "/shopping/", "/slideshow/", "/specials/"]
 STORY_CLASS = "layout-container zone-a-margin lead-type--threeUp"
 REGEX = "-.*[1-9]+$"
-NBC = 'nbc'
+NBC = 'NBC'
 AFFILIATES = "-affiliates-"
 
 

@@ -14,7 +14,7 @@ import src.util.constants as c
 """
 
 AP_LINK = "https://apnews.com/"
-AP = "ap"
+AP = "Associated Press"
 ARTICLE = "/article/"
 
 def scrape_ap():

@@ -16,7 +16,7 @@ import src.util.constants as c
     https://news.yahoo.com/ohios-nina-turner-upset-flashes-113420698.html
 """
 YAHOO_LINK = "https://news.yahoo.com/"
-YAHOO = 'yahoo'
+YAHOO = 'Yahoo'
 CAPTION_PROPERTY = "og:description"
 CONTENT = "content"
 

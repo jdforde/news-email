@@ -17,7 +17,7 @@ from src.util.functions import send_request, has_all_components
 
 NYT_LINK = ["https://www.nytimes.com/section/us", "https://www.nytimes.com/section/politics"]
 NYT_WEBSITE = "https://www.nytimes.com"
-NYT = 'nyt'
+NYT = 'NYT'
 TODAY = date.today()
 INTERACTIVE = '/interactive/'
 

@@ -10,7 +10,7 @@ import src.util.constants as c
     source: website story was retrieved from, cbs
 """
 CBS_LINK = "https://www.cbsnews.com/"
-CBS = 'cbs'
+CBS = 'CBS'
 CAPTION_PROPERTY = "og:description"
 TITLE_PROPERTY = "content__title"
 CONTENT = "content"

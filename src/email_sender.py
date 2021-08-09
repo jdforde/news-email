@@ -2,24 +2,27 @@ from datetime import date
 import time
 import random
 import logging
+import requests
+import json
+import csv
+import gzip
+import re
 
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
-from src.mockup_generator import mockup_generator
+# from src.mockup_generator import mockup_generator
 import src.util.secret_constants as sc
 import src.util.constants as c
 from util.functions import read_cache
 
-
 '''
 Open Issues:
-- Get database functionality running
-- Fix issue of caption being the same as a sentence (I think this is fixed)
+- Come up with better error handling for contacts_getter
+- Do note that the unsubscribe will permanently unsubscribe you unless I go to sendgrid and remove you from global unsubscribe, try a different link?
 - Make summaries far shorter
-- Make mockup generation quicker, not really sure why it's taking so long
-- Add a "source" in html which tells user where story is from
-- Clean up html a bit: there's a big space between beginning and Today In News
+- Fix issues in stories identified: AP, Yahoo
+- Remove picture functionality from AP. Article isn't mature enough to understand or say image exists if not equal to blank image
 '''
 
 total_time = time.time()
@@ -35,9 +38,9 @@ def add_bullets(story):
   html = ""
   for sentence in story[c.STORY_SUMMARY]:
     html += '''
-      <li color="rgb(255, 255, 255)" style="text-align: inherit; font-family: &quot;times new roman&quot;, times, serif; color: rgb(255, 255, 255)">
-      <span style="overflow-wrap: break-word; text-indent: -0.25in; line-height: normal; font-size: 14pt; color: #ffffff; font-family: &quot;times new roman&quot;, times, serif">
-      ''' + sentence + '''<br></span><span style="color: #ffffff; font-family: &quot;times new roman&quot;, times, serif">&nbsp;</span></li>
+    <li color="rgb(0, 0, 0)" style="text-align: inherit; font-family: &quot;times new roman&quot;, times, serif; color: rgb(0, 0, 0)">
+    <span style="overflow-wrap: break-word; text-indent: -0.25in; line-height: normal; font-size: 14pt; color: #000000; font-family: &quot;times new roman&quot;, times, serif">
+    ''' + sentence + '''<br></span><span style="color: #000000; font-family: &quot;times new roman&quot;, times, serif">&nbsp;</span></li>
     '''
   return html
 
@@ -75,17 +78,19 @@ def create_story(story, image):
       <tr>
         <td style="padding:18px 0px 18px 0px; line-height:22px; text-align:inherit;" height="100%" valign="top" bgcolor="" role="module-content"><div>
         <div style="font-family: inherit; text-align: center"><span style="overflow-wrap: break-word; margin-bottom: 0in; line-height: normal; font-size: 30px; 
-        color: #a70c0c; font-family: verdana, geneva, sans-serif"><strong><a href=''' + story[c.STORY_URL] +">" +  story[c.STORY_TITLE] + '''</a></strong></span>
+        color: #a70c0c; font-family: verdana, geneva, sans-serif"><strong><a href=''' + story[c.STORY_URL] + ''' style="color: #a70c0c; text-decoration: none;">''' +  story[c.STORY_TITLE] + '''</a></strong></span>
         <span style="font-size: 30px; color: #a70c0c; font-family: verdana, geneva, sans-serif">&nbsp;</span></div>
         <div style="font-family: inherit; text-align: center"><span style="overflow-wrap: break-word; margin-bottom: 0in; line-height: normal; font-size: 18px; 
         color: #a70c0c; font-family: verdana, geneva, sans-serif">''' + story[c.STORY_CAPTION] + '''</span><span style="font-size: 18px; color: #a70c0c; 
         font-family: verdana, geneva, sans-serif">&nbsp;</span></div>
         <div style="font-family: inherit; text-align: center"><br></div>
-        <ul padding-left: 200px >
+        <ul>
     '''
   html+= add_bullets(story)
   html+= '''
-  </ul><div></div></div></td>
+  </ul>
+  <div style="font-family: inherit; text-align: right"><span style="padding-right: 15px; font-family: &quot;times new roman&quot;, times, serif; font-size: 13px; color: #A70C0C">
+  Source: ''' + story[c.STORY_SOURCE] + ''' </span><div></div></div></td>
       </tr>
     </tbody>
   </table>
@@ -108,9 +113,40 @@ def create_story(story, image):
 
   return html
 
+def contacts_getter():
+  CONTACT_URL = "https://api.sendgrid.com/v3/marketing/contacts/exports"
+  HEADERS = {
+  'Authorization': 'Bearer ' + sc.SENDGRID_API_KEY
+  }
+  EMAIL_REGEX = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'  
+
+  recipients = []
+
+  try:
+    post_req = requests.request("POST", CONTACT_URL, headers=HEADERS)
+    data = json.loads(post_req.content)
+
+    time.sleep(2)
+
+    get_req = requests.request("GET", data["_metadata"]["self"], headers=HEADERS)
+    data = json.loads(get_req.content)
+    url = data["urls"][0]
+
+    response = requests.request("GET", url)
+    csv_file = csv.reader(gzip.decompress(response.content).decode('utf-8'), delimiter=",")
+    for row in csv_file:
+      if re.match(EMAIL_REGEX, ','.join(row)):
+        recipients.append(','.join(row))
+
+  except Exception as e:
+    logging.critical("Error has occured while trying to get email recipients: %s", e)
+
+  return recipients
+
 def email_sender():
-  logging.info("Starting mockup generation")
-  mockup = mockup_generator()
+  #Can we multithread this?
+  mockup = read_cache("mockup.txt")
+  recipients = contacts_getter()
 
   logging.info("Composing email")
   choices = random.choices([True, False], weights=(30, 70), k=len(mockup)-1)
@@ -120,12 +156,13 @@ def email_sender():
       html+= create_story(story, picture)
 
   html += c.STATIC_END
-
   activity_time = time.time()
+  with open("cache.html", "w") as f:
+    f.write(html)
 
   message = Mail(
       from_email=sc.SENDER_EMAIL,
-      to_emails=sc.RECIPIENTS,
+      to_emails=recipients,
       subject=c.month[date.today().month] + " " + str(date.today().day) + ", " + str(date.today().year),
       html_content=html
   )

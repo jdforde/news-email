@@ -13,7 +13,7 @@ from src.util.functions import send_request, has_all_components
 """
 
 NPR_LINK = "https://www.npr.org/"
-NPR = "npr"
+NPR = "NPR"
 FEEDS_REGEX = "https://feeds.npr.org/feeds/100[0-9]/feed.json"
 
 ITEMS = "items"

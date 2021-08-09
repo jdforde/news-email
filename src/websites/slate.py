@@ -10,7 +10,7 @@ import src.util.constants as c
     source: website story was retrieved from, slate
 """
 SLATE_LINKS = ["https://slate.com/news-and-politics", "https://slate.com/business"]
-SLATE = 'slate'
+SLATE = 'Slate'
 CAPTION_PROPERTY = "og:description"
 CONTENT = "content"
 PODCAST = "/podcasts/"

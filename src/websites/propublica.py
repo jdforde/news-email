@@ -11,7 +11,7 @@ import src.util.constants as c
     source: website story was retrieved from, Propublica
 """
 PROPUBLICA_LINK = "https://www.propublica.org/"
-PROPUBLICA = 'propublica'
+PROPUBLICA = 'ProPublica'
 ARTICLE_ROUTE = "/article/"
 H2 = 'h2'
 
