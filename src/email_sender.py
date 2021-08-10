@@ -18,11 +18,14 @@ from util.functions import read_cache
 
 '''
 Open Issues:
-- Come up with better error handling for contacts_getter
-- Do note that the unsubscribe will permanently unsubscribe you unless I go to sendgrid and remove you from global unsubscribe, try a different link?
 - Make summaries far shorter
-- Fix issues in stories identified: AP, Yahoo
-- Remove picture functionality from AP. Article isn't mature enough to understand or say image exists if not equal to blank image
+- Fix issues in stories identified: AP (blocked for summary creating abilities)
+- Not sure what this summary issue is about (https://apnews.com/article/oddities-entertainment-arts-and-entertainment-julie-bowen-2153544bf11a84a33afcbeb04704d396)
+•	FILE - This June 1, 2018 file photo shows actress Julie Bowen at the Inspiration Awards benefiting Step Up in Beverly Hills, Calif. A woman who fainted and hit her head on a rock after stopping to rest in Utah's Arches National Park woke up to hear a familiar voice and wondered if she might be watching television.
+ 
+•	FILE - This June 1, 2018 file photo shows actress Julie Bowen at the Inspiration Awards benefiting Step Up in Beverly Hills, Calif. A woman who fainted and hit her head on a rock after stopping to rest in Utah's Arches National Park woke up to hear a familiar voice and wondered if she might be watching television.
+- try writing test cases
+
 '''
 
 total_time = time.time()
@@ -121,7 +124,6 @@ def contacts_getter():
   EMAIL_REGEX = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'  
 
   recipients = []
-
   try:
     post_req = requests.request("POST", CONTACT_URL, headers=HEADERS)
     data = json.loads(post_req.content)
@@ -137,9 +139,16 @@ def contacts_getter():
     for row in csv_file:
       if re.match(EMAIL_REGEX, ','.join(row)):
         recipients.append(','.join(row))
-
+  except gzip.BadGzipFile as e:
+    logging.critical("Error with parsing gzip file. %s", e)
+  except json.JSONDecodeError as e:
+    logging.critical("Error with parsing JSON file response: %s", e)
+  except KeyError as e:
+    logging.critical("Unable to find key value from JSON file: %s", e)
+  except csv.Error as e:
+    logging.critical("Error with trying to read response as CSV file: %s", e)
   except Exception as e:
-    logging.critical("Error has occured while trying to get email recipients: %s", e)
+    logging.critical("An unknown exception as occured: %s", e)
 
   return recipients
 
@@ -147,35 +156,38 @@ def email_sender():
   #Can we multithread this?
   mockup = read_cache("mockup.txt")
   recipients = contacts_getter()
+  if recipients:
+    logging.info("Composing email")
+    choices = random.choices([True, False], weights=(30, 70), k=len(mockup)-1)
+    choices.insert(0, True)
+    html = c.STATIC_BEGINNING
+    for story, picture in zip(mockup, choices):
+        html+= create_story(story, picture)
 
-  logging.info("Composing email")
-  choices = random.choices([True, False], weights=(30, 70), k=len(mockup)-1)
-  choices.insert(0, True)
-  html = c.STATIC_BEGINNING
-  for story, picture in zip(mockup, choices):
-      html+= create_story(story, picture)
+    html += c.STATIC_END
+    activity_time = time.time()
+    with open("cache.html", "w") as f:
+      f.write(html)
 
-  html += c.STATIC_END
-  activity_time = time.time()
-  with open("cache.html", "w") as f:
-    f.write(html)
+    message = Mail(
+        from_email=sc.SENDER_EMAIL,
+        to_emails=recipients,
+        subject=c.month[date.today().month] + " " + str(date.today().day) + ", " + str(date.today().year),
+        html_content=html
+    )
 
-  message = Mail(
-      from_email=sc.SENDER_EMAIL,
-      to_emails=recipients,
-      subject=c.month[date.today().month] + " " + str(date.today().day) + ", " + str(date.today().year),
-      html_content=html
-  )
+    try:
+        sg = SendGridAPIClient(sc.SENDGRID_API_KEY)
+        response = sg.send(message)
+        logging.info("Successfully able to send email in {:.2f} seconds".format(time.time()-activity_time))
+        logging.info(response.headers)
+    except Exception as e:
+        logging.critical("Unable to send email: ", e)
 
-  try:
-      sg = SendGridAPIClient(sc.SENDGRID_API_KEY)
-      response = sg.send(message)
-      logging.info("Successfully able to send email in {:.2f} seconds".format(time.time()-activity_time))
-      logging.info(response.headers)
-  except Exception as e:
-      logging.critical("Unable to send email: ", e)
+    logging.info("Entire program finished in {:.2f} seconds".format(time.time()-total_time))
+  else:
+    logging.critical("Unable to get list of contacts and send email")
 
-  logging.info("Entire program finished in {:.2f} seconds".format(time.time()-total_time))
 
 if __name__ == '__main__':
   email_sender()

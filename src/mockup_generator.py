@@ -109,7 +109,10 @@ def mockup_generator():
         article.build()
         story[c.STORY_TEXT] = article.text
         if article.has_top_image:
-            story[c.STORY_IMAGE] = article.top_image
+            if not article.top_image == "https://apnews.com/images/ShareLogo2.png":
+                story[c.STORY_IMAGE] = article.top_image
+            else:
+                logging.warning("AP site does not have proper image. Not adding image to mockup")
         parser = PlaintextParser.from_string(story[c.STORY_TEXT], TOKENIZER)
         summary = tr_summarizer(parser.document, 2)
         story[c.STORY_SUMMARY] = [str(sentence) for sentence in summary if str(sentence)!=story[c.STORY_CAPTION]]

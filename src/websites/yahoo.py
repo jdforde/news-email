@@ -9,14 +9,12 @@ import src.util.constants as c
     url: page url
     source: website story was retrieved from, yahoo
 
-    A yahoo caption miss, it took too much:
-    An upset in Ohio on Tuesday night is giving moderate, Biden-aligned Democrats momentum vs. the party's vocal left ahead of next year's midterms. 
-    Driving the news: In a special primary for U.S. House in the Cleveland area, Cuyahoga County Council member Shontel Brown pulled out a surprise victory for the Democratic 
-    establishment in Cleveland.Get market news worthy of your time with Axios Markets. Subscribe for free.The left's stars had come out for her leading opponent, progressive Nina Turner: F 
-    https://news.yahoo.com/ohios-nina-turner-upset-flashes-113420698.html
+    Issue is right now, getting captions from Yahoo is unerliable. Og:description has incomplete sentences. The websites
+    that the stories are from usually have good og:descriptions. 
 """
 YAHOO_LINK = "https://news.yahoo.com/"
 YAHOO = 'Yahoo'
+YAHOO_EXT = 'Yahoo external'
 CAPTION_PROPERTY = "og:description"
 CONTENT = "content"
 
@@ -47,15 +45,18 @@ def scrape_yahoo():
             logging.error("Unable to get response for story")
             continue
         html_response = BeautifulSoup(story_request.text, c.PARSER)
-
-
         story_dict[c.STORY_TITLE] = html_response.title.string
         logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
         story_dict[c.STORY_CAPTION] = html_response.find(property=CAPTION_PROPERTY).get(CONTENT)
+        
+        if not story_dict[c.STORY_CAPTION].endswith(".") and not story_dict[c.STORY_CAPTION].endswith('"'):
+            logging.warning("Caption property malformed. Skipping story %s", story)
+            continue
 
         if (has_all_components(story_dict)):
             story_list.append(story_dict)
         else:
             logging.warning("Story missing some components, not added")
     
+
     return story_list
