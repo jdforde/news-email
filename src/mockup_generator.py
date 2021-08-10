@@ -1,6 +1,5 @@
 import itertools
 import logging
-import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from inspect import getmembers, isfunction
@@ -27,13 +26,6 @@ MODEL = hub.load("USE/")
 
 TOKENIZER = Tokenizer("english")
 tr_summarizer = TextRankSummarizer()
-
-def len_summary(article_text):
-    num_words = len(re.findall(r'\w+', article_text))
-    len_summary = round(num_words/400) 
-    if (len_summary == 0):
-        len_summary = 1
-    return len_summary
 
 def conflict(mockup, yesterday_mockup, toadd):
     toadd_embed = MODEL([toadd[c.STORY_TITLE]])

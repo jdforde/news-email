@@ -11,7 +11,7 @@ import re
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
-# from src.mockup_generator import mockup_generator
+from src.mockup_generator import mockup_generator
 import src.util.secret_constants as sc
 import src.util.constants as c
 from util.functions import read_cache
@@ -19,13 +19,10 @@ from util.functions import read_cache
 '''
 Open Issues:
 - Make summaries far shorter
+- Cache story names for longer than a day... probably a week or two 
 - Fix issues in stories identified: AP (blocked for summary creating abilities)
-- Not sure what this summary issue is about (https://apnews.com/article/oddities-entertainment-arts-and-entertainment-julie-bowen-2153544bf11a84a33afcbeb04704d396)
-•	FILE - This June 1, 2018 file photo shows actress Julie Bowen at the Inspiration Awards benefiting Step Up in Beverly Hills, Calif. A woman who fainted and hit her head on a rock after stopping to rest in Utah's Arches National Park woke up to hear a familiar voice and wondered if she might be watching television.
- 
-•	FILE - This June 1, 2018 file photo shows actress Julie Bowen at the Inspiration Awards benefiting Step Up in Beverly Hills, Calif. A woman who fainted and hit her head on a rock after stopping to rest in Utah's Arches National Park woke up to hear a familiar voice and wondered if she might be watching television.
+- Not sure what this summary issue is about (https://apnews.com/article/oddities-entertainment-arts-and-entertainment-julie-bowen-2153544bf11a84a33afcbeb04704d396) - sumy failure (blocked for summary creating abilities)
 - try writing test cases
-
 '''
 
 total_time = time.time()
@@ -118,13 +115,12 @@ def create_story(story, image):
 
 def contacts_getter():
   CONTACT_URL = "https://api.sendgrid.com/v3/marketing/contacts/exports"
-  HEADERS = {
-  'Authorization': 'Bearer ' + sc.SENDGRID_API_KEY
-  }
-  EMAIL_REGEX = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'  
-
+  HEADERS = {'Authorization': 'Bearer ' + sc.SENDGRID_API_KEY}
+  EMAIL_REGEX =  r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'  
+ 
   recipients = []
   try:
+    logging.info("Attempting to get contacts from SendGrid API requests")
     post_req = requests.request("POST", CONTACT_URL, headers=HEADERS)
     data = json.loads(post_req.content)
 
@@ -153,10 +149,11 @@ def contacts_getter():
   return recipients
 
 def email_sender():
-  #Can we multithread this?
-  mockup = read_cache("mockup.txt")
+  mockup = mockup_generator()
   recipients = contacts_getter()
+
   if recipients:
+    logging.info("Successfully received recipients. Recipients are: %s", recipients)
     logging.info("Composing email")
     choices = random.choices([True, False], weights=(30, 70), k=len(mockup)-1)
     choices.insert(0, True)
@@ -168,22 +165,21 @@ def email_sender():
     activity_time = time.time()
     with open("cache.html", "w") as f:
       f.write(html)
+    for recipient in recipients:
+      message = Mail(
+          from_email=sc.SENDER_EMAIL,
+          to_emails=recipient,
+          subject=c.month[date.today().month] + " " + str(date.today().day) + ", " + str(date.today().year),
+          html_content=html
+      )
 
-    message = Mail(
-        from_email=sc.SENDER_EMAIL,
-        to_emails=recipients,
-        subject=c.month[date.today().month] + " " + str(date.today().day) + ", " + str(date.today().year),
-        html_content=html
-    )
+      try:
+          sg = SendGridAPIClient(sc.SENDGRID_API_KEY)
+          sg.send(message)
+      except Exception as e:
+          logging.critical("Unable to send email: ", e)
 
-    try:
-        sg = SendGridAPIClient(sc.SENDGRID_API_KEY)
-        response = sg.send(message)
-        logging.info("Successfully able to send email in {:.2f} seconds".format(time.time()-activity_time))
-        logging.info(response.headers)
-    except Exception as e:
-        logging.critical("Unable to send email: ", e)
-
+    logging.info("Successfully able to send email in {:.2f} seconds".format(time.time()-activity_time))
     logging.info("Entire program finished in {:.2f} seconds".format(time.time()-total_time))
   else:
     logging.critical("Unable to get list of contacts and send email")
