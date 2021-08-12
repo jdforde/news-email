@@ -9,8 +9,6 @@ import src.util.constants as c
     caption: AP-given summary of article
     url: page url
     source: website story was retrieved from, ap
-
-    AP captions should not start with: BEIJING (AP) — 
 """
 
 AP_LINK = "https://apnews.com/"
@@ -45,7 +43,13 @@ def scrape_ap():
         html_response = BeautifulSoup(story_request.text, c.PARSER)
         story_dict[c.STORY_TITLE] = html_response.title.string
         logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
-        story_dict[c.STORY_CAPTION] = html_response.find(property=c.CAPTION_PROPERTY).get(c.CONTENT_PROPERTY)
+       
+        caption = html_response.find(property=c.CAPTION_PROPERTY).get(c.CONTENT_PROPERTY)
+        if "(AP) —" in caption:
+            story_dict[c.STORY_CAPTION] = caption[caption.index("(AP) —")+7:]
+        else: 
+            story_dict[c.STORY_CAPTION] = caption
+        print(story_dict[c.STORY_CAPTION])
         
         if (has_all_components(story_dict)):
             story_list.append(story_dict)
@@ -53,3 +57,8 @@ def scrape_ap():
             logging.warning("Story missing some components, not added")
 
     return story_list
+
+if __name__ == '__main__':
+    stories = scrape_ap()
+    for story in stories:
+        print(story[c.STORY_CAPTION])

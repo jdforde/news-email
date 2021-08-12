@@ -1,6 +1,7 @@
 import itertools
 import logging
 import time
+import re
 from concurrent.futures import ThreadPoolExecutor
 from inspect import getmembers, isfunction
 
@@ -10,6 +11,7 @@ from newspaper import Article
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.summarizers.text_rank import TextRankSummarizer
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 import src.util.constants as c
 from src.util.functions import cache, read_cache
@@ -26,6 +28,33 @@ MODEL = hub.load("USE/")
 
 TOKENIZER = Tokenizer("english")
 tr_summarizer = TextRankSummarizer()
+
+ABSTRACTIVE_MODEL = AutoModelForSeq2SeqLM.from_pretrained("mrm8488/t5-base-finetuned-summarize-news")
+ABSTRACTIVE_TOKENIZER = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-summarize-news")
+
+def abstractive_summary(start_text):
+    #clean variable names up, try to make fewer variables
+    to_parse = start_text
+    if len(start_text.split()) > 512:
+        parser = PlaintextParser.from_string(start_text, TOKENIZER)
+        text = tr_summarizer(parser.document, 8)
+        text_real = [str(sentence) for sentence in text]
+        text_real = ''.join(text_real)
+        to_parse = text_real
+
+    input_ids = ABSTRACTIVE_TOKENIZER.encode(to_parse, return_tensors="pt", add_special_tokens=True)
+    generated_ids = ABSTRACTIVE_MODEL.generate(input_ids=input_ids, num_beams=2, max_length=100,  repetition_penalty=2.5, length_penalty=1.0, early_stopping=True)
+    preds = [ABSTRACTIVE_TOKENIZER.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=True) for g in generated_ids]
+    
+    real_string = preds[0][re.search('\w', preds[0]).start():preds[0].rfind('.')+1]
+    sentence_list = re.split('([a-z]{2,}\. )', real_string)
+    for i in range(0, len(sentence_list)-1):
+        if i+1 < len(sentence_list)-1:
+            sentence_list[i] = sentence_list[i] + sentence_list[i+1]
+            sentence_list[i] = sentence_list[i].capitalize()
+            sentence_list.remove(sentence_list[i+1])
+    
+    return sentence_list
 
 def conflict(mockup, yesterday_mockup, toadd):
     toadd_embed = MODEL([toadd[c.STORY_TITLE]])
@@ -107,7 +136,12 @@ def mockup_generator():
                 logging.warning("AP site does not have proper image. Not adding image to mockup")
         parser = PlaintextParser.from_string(story[c.STORY_TEXT], TOKENIZER)
         summary = tr_summarizer(parser.document, 2)
-        story[c.STORY_SUMMARY] = [str(sentence) for sentence in summary if str(sentence)!=story[c.STORY_CAPTION]]
+        if len(' '.join([str(sentence) for sentence in summary]).split()) > 70:
+            logging.warning("Sumy summary too long. Creating abstractive summary")
+            story[c.STORY_SUMMARY] = abstractive_summary(article.text)
+        else:
+            story[c.STORY_SUMMARY] = [str(sentence) for sentence in summary]
+            
     
     cache(mockup, CACHED_MOCKUP)
     logging.info("Finished generating mockup in {:.2f} seconds".format(time.time() - activity_time))

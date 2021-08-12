@@ -11,18 +11,18 @@ import re
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
-from src.mockup_generator import mockup_generator
+# from src.mockup_generator import mockup_generator
 import src.util.secret_constants as sc
 import src.util.constants as c
 from util.functions import read_cache
 
 '''
 Open Issues:
-- Make summaries far shorter
-- Cache story names for longer than a day... probably a week or two 
-- Fix issues in stories identified: AP (blocked for summary creating abilities)
-- Not sure what this summary issue is about (https://apnews.com/article/oddities-entertainment-arts-and-entertainment-julie-bowen-2153544bf11a84a33afcbeb04704d396) - sumy failure (blocked for summary creating abilities)
+- Continue to refine abstractive summarizer: won't capitalize names? Won't split sentence on year, clean up variable names in function
+- Drop newspaper dependency by grabbign article text in each website (might be slow, could try grabbing during article build, but it's different for each site)
+- Cache story names for longer than a day... probably a week or two but just story names
 - try writing test cases
+- Long term: create own ML abstractive text, would be big commitment
 '''
 
 total_time = time.time()
@@ -124,7 +124,7 @@ def contacts_getter():
     post_req = requests.request("POST", CONTACT_URL, headers=HEADERS)
     data = json.loads(post_req.content)
 
-    time.sleep(2)
+    time.sleep(5)
 
     get_req = requests.request("GET", data["_metadata"]["self"], headers=HEADERS)
     data = json.loads(get_req.content)
@@ -149,9 +149,16 @@ def contacts_getter():
   return recipients
 
 def email_sender():
-  mockup = mockup_generator()
-  recipients = contacts_getter()
+  mockup = read_cache("mockup.txt")
+  choices = random.choices([True, False], weights=(30, 70), k=len(mockup)-1)
+  choices.insert(0, True)
 
+  html = c.STATIC_BEGINNING
+  for story, picture in zip(mockup, choices):
+      html+= create_story(story, picture)
+  html += c.STATIC_END
+
+  recipients = contacts_getter()
   if recipients:
     logging.info("Successfully received recipients. Recipients are: %s", recipients)
     logging.info("Composing email")
