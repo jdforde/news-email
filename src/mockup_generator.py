@@ -4,6 +4,7 @@ import time
 import re
 from concurrent.futures import ThreadPoolExecutor
 from inspect import getmembers, isfunction
+from pathlib import Path
 
 import numpy as np
 import tensorflow_hub as hub
@@ -33,21 +34,18 @@ ABSTRACTIVE_MODEL = AutoModelForSeq2SeqLM.from_pretrained("mrm8488/t5-base-finet
 ABSTRACTIVE_TOKENIZER = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-summarize-news")
 
 def abstractive_summary(start_text):
-    #clean variable names up, try to make fewer variables
-    to_parse = start_text
     if len(start_text.split()) > 512:
+        logging.info("Story is too long for abstractive summarizer. Summarizing a summary")
         parser = PlaintextParser.from_string(start_text, TOKENIZER)
-        text = tr_summarizer(parser.document, 8)
-        text_real = [str(sentence) for sentence in text]
-        text_real = ''.join(text_real)
-        to_parse = text_real
+        sentences = tr_summarizer(parser.document, 6)
+        start_text = ''.join([str(sentence) for sentence in sentences])
 
-    input_ids = ABSTRACTIVE_TOKENIZER.encode(to_parse, return_tensors="pt", add_special_tokens=True)
+    input_ids = ABSTRACTIVE_TOKENIZER.encode(start_text, return_tensors="pt", add_special_tokens=True)
     generated_ids = ABSTRACTIVE_MODEL.generate(input_ids=input_ids, num_beams=2, max_length=100,  repetition_penalty=2.5, length_penalty=1.0, early_stopping=True)
     preds = [ABSTRACTIVE_TOKENIZER.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=True) for g in generated_ids]
     
-    real_string = preds[0][re.search('\w', preds[0]).start():preds[0].rfind('.')+1]
-    sentence_list = re.split('([a-z]{2,}\. )', real_string)
+    chopped_string = preds[0][re.search('\w', preds[0]).start():preds[0].rfind('.')+1]
+    sentence_list = re.split('([a-z]{4,}\. )', chopped_string)
     for i in range(0, len(sentence_list)-1):
         if i+1 < len(sentence_list)-1:
             sentence_list[i] = sentence_list[i] + sentence_list[i+1]
@@ -56,7 +54,7 @@ def abstractive_summary(start_text):
     
     return sentence_list
 
-def conflict(mockup, yesterday_mockup, toadd):
+def conflict(mockup, old_stories, toadd):
     toadd_embed = MODEL([toadd[c.STORY_TITLE]])
     story_count = 1
     for story in mockup:
@@ -67,9 +65,9 @@ def conflict(mockup, yesterday_mockup, toadd):
         if story[c.STORY_SOURCE] == toadd[c.STORY_SOURCE]:
             story_count+=1
     
-    for story in yesterday_mockup:
-        if toadd[c.STORY_TITLE] == story[c.STORY_TITLE]:
-            return False
+    if toadd[c.STORY_TITLE] in old_stories:
+        logging.info("Can't add story. Was in a previous mockup this week")
+        return True
 
     return ((story_count)/MOCKUP_LEN) > UNDER_THRESHOLD
 
@@ -116,8 +114,15 @@ def mockup_generator():
     activity_time = time.time()
     sorted_stories = sorted(all_stories, key = lambda i: i[c.STORY_SCORE], reverse=True)
 
+    if Path(c.CACHED_STORIES).exists():
+        logging.info("Reading cached stories to use for conflict resolution")
+        with open(c.CACHED_STORIES, "r") as f:
+            old_stories = f.read().split('\n')
+    else:
+        logging.info("cached_stories.txt is unavailable")
+
     for story in sorted_stories:
-        if not(conflict(mockup, read_cache(CACHED_MOCKUP), story)):
+        if not(conflict(mockup, old_stories, story)):
             mockup.append(story)
         if(len(mockup) == MOCKUP_LEN):
             break
@@ -136,13 +141,22 @@ def mockup_generator():
                 logging.warning("AP site does not have proper image. Not adding image to mockup")
         parser = PlaintextParser.from_string(story[c.STORY_TEXT], TOKENIZER)
         summary = tr_summarizer(parser.document, 2)
-        if len(' '.join([str(sentence) for sentence in summary]).split()) > 70:
-            logging.warning("Sumy summary too long. Creating abstractive summary")
+        if len(' '.join([str(sentence) for sentence in summary]).split()) > 90:
+            logging.info("Sumy summary too long. Creating abstractive summary")
             story[c.STORY_SUMMARY] = abstractive_summary(article.text)
         else:
             story[c.STORY_SUMMARY] = [str(sentence) for sentence in summary]
             
-    
+    logging.info("Caching the mockup stories")
+    with open(c.CACHED_STORIES, "a") as f:
+        for story in mockup:
+            f.write(story[c.STORY_TITLE] + '\n')
+
+    #temporary, for testing, remove in production
     cache(mockup, CACHED_MOCKUP)
+
     logging.info("Finished generating mockup in {:.2f} seconds".format(time.time() - activity_time))
     return mockup
+
+if __name__ == '__main__':
+    mockup_generator()

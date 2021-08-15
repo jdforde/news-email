@@ -1,3 +1,4 @@
+__pycache__ *
 __pycache__
 tempCodeRunnerFile.py
 .vscode
@@ -8,3 +9,4 @@ readmockup.py
 secret_constants.py
 USE
 cache.html
+cached_stories.txt

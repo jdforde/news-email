@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import datetime
 import time
 import random
 import logging
@@ -7,20 +7,22 @@ import json
 import csv
 import gzip
 import re
+from pathlib import Path
+import os
 
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
-# from src.mockup_generator import mockup_generator
+from src.mockup_generator import mockup_generator
 import src.util.secret_constants as sc
 import src.util.constants as c
 from util.functions import read_cache
 
 '''
 Open Issues:
-- Continue to refine abstractive summarizer: won't capitalize names? Won't split sentence on year, clean up variable names in function
 - Drop newspaper dependency by grabbign article text in each website (might be slow, could try grabbing during article build, but it's different for each site)
-- Cache story names for longer than a day... probably a week or two but just story names
+- Multithread mockup generation because asbtractive summary creation is very slow
+- Get rid of weird torch warning
 - try writing test cases
 - Long term: create own ML abstractive text, would be big commitment
 '''
@@ -149,7 +151,17 @@ def contacts_getter():
   return recipients
 
 def email_sender():
-  mockup = read_cache("mockup.txt")
+  if datetime.today().weekday() == 6 and Path(c.CACHED_STORIES).exists():
+    logging.info("It's Sunday. Deleting the story cache")
+    with open(c.CACHED_STORIES, "r") as f:
+      stories = f.read().split('\n')
+    with open(c.CACHED_STORIES, "w") as f:
+      if len(stories) > 11:
+        f.write('\n'.join(stories[-11:]))
+      else:
+        logging.error("Unable to keep yesterday's cache. Error with file size. Cache will be empty")
+
+  mockup = mockup_generator()
   choices = random.choices([True, False], weights=(30, 70), k=len(mockup)-1)
   choices.insert(0, True)
 
@@ -158,7 +170,8 @@ def email_sender():
       html+= create_story(story, picture)
   html += c.STATIC_END
 
-  recipients = contacts_getter()
+  # recipients = contacts_getter()
+  recipients = ['jdforde@asu.edu']
   if recipients:
     logging.info("Successfully received recipients. Recipients are: %s", recipients)
     logging.info("Composing email")
@@ -176,7 +189,7 @@ def email_sender():
       message = Mail(
           from_email=sc.SENDER_EMAIL,
           to_emails=recipient,
-          subject=c.month[date.today().month] + " " + str(date.today().day) + ", " + str(date.today().year),
+          subject=c.month[datetime.today().month] + " " + str(datetime.today().day) + ", " + str(datetime.today().year),
           html_content=html
       )
 
