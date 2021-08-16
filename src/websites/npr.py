@@ -1,15 +1,13 @@
 import re
 import json
 import logging
-
+import sys
 import src.util.constants as c
 from src.util.functions import send_request, has_all_components
 
 """
-    title: Title of article
-    caption: NPR-given summary of article
-    url: page url
-    source: website story was retrieved from, npr
+Please convert npr from JSON to requests like all of the other ones. This little json object
+does not have the story text, so it's basically useless
 """
 
 NPR_LINK = "https://www.npr.org/"

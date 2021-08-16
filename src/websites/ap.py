@@ -3,17 +3,14 @@ import logging
 
 from src.util.functions import has_all_components, send_request
 import src.util.constants as c
-
 """
-    title: Title of article
-    caption: AP-given summary of article
-    url: page url
-    source: website story was retrieved from, ap
+Does not need article dependency
 """
 
 AP_LINK = "https://apnews.com/"
 AP = "Associated Press"
 ARTICLE = "/article/"
+AP_BLANK_IMAGE = "https://apnews.com/images/ShareLogo2.png"
 
 def scrape_ap():
     stories = []
@@ -49,16 +46,26 @@ def scrape_ap():
             story_dict[c.STORY_CAPTION] = caption[caption.index("(AP) —")+7:]
         else: 
             story_dict[c.STORY_CAPTION] = caption
-        print(story_dict[c.STORY_CAPTION])
-        
+       
+        html_text = html_response.find(class_="Article").find_all(c.PARAGRAPH_TAG)
+        text = ''.join([sentence.text for sentence in html_text])
+        if "(AP) —" in text and "___" in text:
+            text = text[text.index("(AP) —") + 7:text.index("___")]
+        elif "(AP) —" in text:
+            text = text[text.index("(AP) —") + 7:]
+        elif "___" in text:
+            text = text[:text.index("___")]
+
+        story_dict[c.STORY_TEXT] = text
+
+        image = html_response.find(property=c.IMAGE_PROPERTY).get(c.CONTENT_PROPERTY)
+        if not image == AP_BLANK_IMAGE:
+            story_dict[c.STORY_IMAGE] = image
+
+
         if (has_all_components(story_dict)):
             story_list.append(story_dict)
         else:
             logging.warning("Story missing some components, not added")
 
     return story_list
-
-if __name__ == '__main__':
-    stories = scrape_ap()
-    for story in stories:
-        print(story[c.STORY_CAPTION])

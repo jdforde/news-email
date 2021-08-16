@@ -19,6 +19,7 @@ ANCHOR_TAG = "a"
 HREF_TAG = "href"
 PARAGRAPH_TAG = "p"
 CAPTION_PROPERTY = "og:description"
+IMAGE_PROPERTY = "og:image"
 CONTENT_PROPERTY = "content"
 
 PATH_TO_CHROMEDRIVER = "C:\\Users\\Jakob\\Downloads\\chromedriver.exe"

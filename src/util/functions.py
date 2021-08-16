@@ -28,7 +28,7 @@ def send_request(link, source):
     return request
 
 def has_all_components(story_dict):
-    if (story_dict[c.STORY_URL] and story_dict[c.STORY_TITLE] and story_dict[c.STORY_CAPTION] and story_dict[c.STORY_SOURCE]):
+    if (story_dict[c.STORY_URL] and story_dict[c.STORY_TITLE] and story_dict[c.STORY_CAPTION] and story_dict[c.STORY_SOURCE] and story_dict[c.STORY_TEXT]):
         return True
     else:
         return False

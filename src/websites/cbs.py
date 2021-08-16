@@ -4,16 +4,13 @@ import logging
 from src.util.functions import send_request, has_all_components
 import src.util.constants as c
 """
-    title: Title of article
-    caption: CBS-given summary of article
-    url: page url
-    source: website story was retrieved from, cbs
+Does not need article dependency
+This type of story might have issues: https://www.cbsnews.com/news/this-week-on-sunday-morning-at-home-august-22-2021/
 """
 CBS_LINK = "https://www.cbsnews.com/"
 CBS = 'CBS'
 CAPTION_PROPERTY = "og:description"
 TITLE_PROPERTY = "content__title"
-CONTENT = "content"
 
 def scrape_cbs():
     logging.info("Starting web-scraping")
@@ -49,15 +46,19 @@ def scrape_cbs():
             logging.warning("Unable to scrape article %s", story)
             continue
         logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
-        story_dict[c.STORY_CAPTION] = html_response.find(property=CAPTION_PROPERTY).get(CONTENT)
+
+        html_text= html_response.find(class_="content__body").find_all(c.PARAGRAPH_TAG)
+        text = ''.join([sentence.text for sentence in html_text])
+        story_dict[c.STORY_TEXT] = text
+
+
+        image = html_response.find(property=c.IMAGE_PROPERTY)
+        if image:
+            story_dict[c.STORY_IMAGE] = image.get(c.CONTENT_PROPERTY)
+        story_dict[c.STORY_CAPTION] = html_response.find(property=CAPTION_PROPERTY).get(c.CONTENT_PROPERTY)
         if (has_all_components(story_dict)):
             story_list.append(story_dict)
         else:
             logging.warning("Story missing some components, not added")
     
     return story_list
-
-if __name__ == '__main__':
-    stories = scrape_cbs()
-    for story in stories:
-        print(story[c.STORY_TITLE])

@@ -6,10 +6,7 @@ import src.util.constants as c
 from src.util.functions import send_request, has_all_components, in_category
 
 """
-    title: Title of article
-    caption: NBC-given summary of article
-    url: page url
-    source: website story was retrieved from, nbc
+Does not need article dependency
 """
 
 NBC_LINK = "https://www.nbcnews.com/"
@@ -30,9 +27,8 @@ def scrape_nbc():
         logging.critical("Unable to request NBC site")
         return
 
-
     html_response = BeautifulSoup(request.text, c.PARSER)
-    for link in html_response.find(class_=STORY_CLASS).find_all(c.ANCHOR_TAG):
+    for link in html_response.find_all(c.ANCHOR_TAG):
         if link.get(c.HREF_TAG).startswith(NBC_LINK) and not in_category(link.get(c.HREF_TAG), CATEGORIES):
             if re.search(REGEX, link.get(c.HREF_TAG)) and link.get(c.HREF_TAG) not in stories:
                 stories.append(link.get(c.HREF_TAG))
@@ -59,13 +55,19 @@ def scrape_nbc():
         else:
             logging.warning("Story is malformed, skipping %s", story_url)
             continue
+            
+        
+        html_text = html_response.find(class_="article-body__content").find_all(c.PARAGRAPH_TAG, class_="")
+        text = ''.join([sentence.text for sentence in html_text])
+        story_dict[c.STORY_TEXT] = text
 
+        image = html_response.find(property=c.IMAGE_PROPERTY)
+        if image:
+            story_dict[c.STORY_IMAGE] = image.get(c.CONTENT_PROPERTY)
+        
         if (has_all_components(story_dict)):
             story_list.append(story_dict)
         else:
             logging.warning("Story missing some components, not added")
 
     return story_list
-
-if __name__ == '__main__':
-    scrape_nbc()

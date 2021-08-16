@@ -1,18 +1,15 @@
 import logging
 from bs4 import BeautifulSoup
 from datetime import date
-import newspaper
+import sys
 
 import src.util.constants as c
 from src.util.functions import send_request, has_all_components
 
 """
-    title: Title of article
-    caption: NYT-given summary of article
-    url: page url
-    source: website story was retrieved from, nyt
-    image: url to story image, optional
-    text: story text
+Doesn't need article dependency
+Would be nice to get rid of this at end of some articles:
+Reporting was contributed by <!-- -->Eric Adelson<!-- --> from Lakeland, Fla.; <!-- -->Benjamin Guggenheim<!-- --> from Santa Monica, Calif.; <!-- -->Patricia Mazzei<!-- --> from Miami; Will Sennott from New Bedford, Mass.; and <!-- -->Deena Winter<!-- --> from St. Clou!-- -->Deena Winter<!-- --> from St. Cloud, Minn.
 """
 
 NYT_LINK = ["https://www.nytimes.com/section/us", "https://www.nytimes.com/section/politics"]
@@ -42,7 +39,7 @@ def scrape_nyt():
             story_dict[c.STORY_URL] = story_url
             story_dict[c.STORY_SOURCE] = NYT
 
-            story_request = send_request(story_url, NYT)
+            story_request = send_request('https://www.nytimes.com/2021/08/16/us/covid-delta-variant-us.html', NYT)
             if not story_request:
                 logging.error("Unable to get response for story")
                 continue
@@ -52,6 +49,12 @@ def scrape_nyt():
             logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
             story_dict[c.STORY_CAPTION] = html_response.find(property=c.CAPTION_PROPERTY).get(c.CONTENT_PROPERTY)
 
+            html_text= html_response.find("section", {"name":"articleBody"}).find_all(c.PARAGRAPH_TAG)
+            text = ''.join([sentence.text for sentence in html_text])
+            story_dict[c.STORY_TEXT] = text
+            image = html_response.find(property=c.IMAGE_PROPERTY)
+            if image:
+                story_dict[c.STORY_IMAGE] = image.get(c.CONTENT_PROPERTY)
             if (has_all_components(story_dict)):
                 story_list.append(story_dict)
             else:
@@ -59,3 +62,8 @@ def scrape_nyt():
                 
 
     return story_list
+
+if __name__ == '__main__':
+    stories = scrape_nyt()
+    for story in stories:
+        print(story)
