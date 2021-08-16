@@ -155,8 +155,5 @@ def mockup_generator():
     #temporary, for testing, remove in production
     cache(mockup, CACHED_MOCKUP)
 
-    logging.info("Finished generating mockup in {:.2f} seconds".format(time.time() - activity_time))
+    logging.info("Finished generating complete mockup in {:.2f} seconds".format(time.time() - activity_time))
     return mockup
-
-if __name__ == '__main__':
-    mockup_generator()

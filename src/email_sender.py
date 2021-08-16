@@ -8,7 +8,6 @@ import csv
 import gzip
 import re
 from pathlib import Path
-import os
 
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
@@ -24,7 +23,7 @@ Open Issues:
 - Multithread mockup generation because asbtractive summary creation is very slow
 - Get rid of weird torch warning
 - try writing test cases
-- Long term: create own ML abstractive text, would be big commitment
+- Long term: create own ML abstractive text, would be big commitment or create your own sumy that doens't take long sentences
 '''
 
 total_time = time.time()
@@ -170,8 +169,7 @@ def email_sender():
       html+= create_story(story, picture)
   html += c.STATIC_END
 
-  # recipients = contacts_getter()
-  recipients = ['jdforde@asu.edu']
+  recipients = contacts_getter()
   if recipients:
     logging.info("Successfully received recipients. Recipients are: %s", recipients)
     logging.info("Composing email")
