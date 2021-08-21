@@ -3,15 +3,7 @@ import logging
 
 from src.util.functions import send_request, has_all_components
 import src.util.constants as c
-"""
-    title: Title of article
-    caption: Yahoo-given summary of article
-    url: page url
-    source: website story was retrieved from, yahoo
 
-    Issue is right now, getting captions from Yahoo is unerliable. Og:description has incomplete sentences. The websites
-    that the stories are from usually have good og:descriptions. 
-"""
 YAHOO_LINK = "https://news.yahoo.com/"
 YAHOO = 'Yahoo'
 YAHOO_EXT = 'Yahoo external'
@@ -44,6 +36,7 @@ def scrape_yahoo():
         if not story_request:
             logging.error("Unable to get response for story")
             continue
+
         html_response = BeautifulSoup(story_request.text, c.PARSER)
         story_dict[c.STORY_TITLE] = html_response.title.string
         logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
@@ -52,6 +45,16 @@ def scrape_yahoo():
         if not story_dict[c.STORY_CAPTION].endswith(".") and not story_dict[c.STORY_CAPTION].endswith('"'):
             logging.warning("Caption property malformed. Skipping story %s", story)
             continue
+
+        image = html_response.find(property=c.IMAGE_PROPERTY)
+        if image:
+            story_dict[c.STORY_IMAGE] = image.get(c.CONTENT_PROPERTY)
+            
+        html_text = html_response.find(class_="caas-body").find_all(c.PARAGRAPH_TAG)
+        text = ''.join([sentence.text for sentence in html_text])
+        if "____" in text:
+            text = text[:text.index("____")]
+        story_dict[c.STORY_TEXT] = text
 
         if (has_all_components(story_dict)):
             story_list.append(story_dict)

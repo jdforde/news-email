@@ -4,12 +4,6 @@ import logging
 from src.util.functions import send_request, has_all_components
 import src.util.constants as c
 
-"""
-    title: Title of article
-    caption: Propublica-given summary of article
-    url: page url
-    source: website story was retrieved from, Propublica
-"""
 PROPUBLICA_LINK = "https://www.propublica.org/"
 PROPUBLICA = 'ProPublica'
 ARTICLE_ROUTE = "/article/"
@@ -41,7 +35,21 @@ def scrape_propublica():
 
         story_dict[c.STORY_TITLE] = html_response.title.string[:-13] #gets rid of " - ProPublica"
         logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
+        
         story_dict[c.STORY_CAPTION] = html_response.find(H2).text.lstrip().rstrip()
+        image = html_response.find(property=c.IMAGE_PROPERTY)
+        if image:
+            story_dict[c.STORY_IMAGE] = image.get(c.CONTENT_PROPERTY)
+
+        html_text = ""
+        if html_response.find(class_="article-body"):
+            html_text = html_response.find(class_="article-body").find_all(c.PARAGRAPH_TAG)
+        elif html_response.find(class_="content"):
+            html_text = html_response.find(class_="content").find_all(c.PARAGRAPH_TAG)
+
+
+        text = ''.join([sentence.text for sentence in html_text])
+        story_dict[c.STORY_TEXT] = text
 
         if (has_all_components(story_dict)):
             story_list.append(story_dict)

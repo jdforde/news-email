@@ -8,7 +8,6 @@ from pathlib import Path
 
 import numpy as np
 import tensorflow_hub as hub
-from newspaper import Article
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.summarizers.text_rank import TextRankSummarizer
@@ -131,19 +130,11 @@ def mockup_generator():
         logging.critical("Unable to add at least {} stories to mockup".format(MOCKUP_LEN))
 
     for story in mockup:
-        article = Article(story[c.STORY_URL])
-        article.build()
-        story[c.STORY_TEXT] = article.text
-        if article.has_top_image:
-            if not article.top_image == "https://apnews.com/images/ShareLogo2.png":
-                story[c.STORY_IMAGE] = article.top_image
-            else:
-                logging.warning("AP site does not have proper image. Not adding image to mockup")
         parser = PlaintextParser.from_string(story[c.STORY_TEXT], TOKENIZER)
         summary = tr_summarizer(parser.document, 2)
         if len(' '.join([str(sentence) for sentence in summary]).split()) > 90:
             logging.info("Sumy summary too long. Creating abstractive summary")
-            story[c.STORY_SUMMARY] = abstractive_summary(article.text)
+            story[c.STORY_SUMMARY] = abstractive_summary(story[c.STORY_TEXT])
         else:
             story[c.STORY_SUMMARY] = [str(sentence) for sentence in summary]
             

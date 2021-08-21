@@ -4,7 +4,6 @@ import logging
 from src.util.functions import send_request, has_all_components
 import src.util.constants as c
 """
-Does not need article dependency
 This type of story might have issues: https://www.cbsnews.com/news/this-week-on-sunday-morning-at-home-august-22-2021/
 """
 CBS_LINK = "https://www.cbsnews.com/"
@@ -50,7 +49,6 @@ def scrape_cbs():
         html_text= html_response.find(class_="content__body").find_all(c.PARAGRAPH_TAG)
         text = ''.join([sentence.text for sentence in html_text])
         story_dict[c.STORY_TEXT] = text
-
 
         image = html_response.find(property=c.IMAGE_PROPERTY)
         if image:

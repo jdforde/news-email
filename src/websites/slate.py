@@ -3,12 +3,7 @@ import logging
 
 from src.util.functions import send_request, has_all_components
 import src.util.constants as c
-"""
-    title: Title of article
-    caption: Slate-given summary of article
-    url: page url
-    source: website story was retrieved from, slate
-"""
+
 SLATE_LINKS = ["https://slate.com/news-and-politics", "https://slate.com/business"]
 SLATE = 'Slate'
 CAPTION_PROPERTY = "og:description"
@@ -45,6 +40,14 @@ def scrape_slate():
             story_dict[c.STORY_TITLE] = html_response.title.string
             logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
             story_dict[c.STORY_CAPTION] = html_response.find(property=CAPTION_PROPERTY).get(CONTENT)
+
+            image = html_response.find(property=c.IMAGE_PROPERTY)
+            if image:
+                story_dict[c.STORY_IMAGE] = image.get(c.CONTENT_PROPERTY)
+
+            html_text = html_response.find(class_="article__body").find_all(c.PARAGRAPH_TAG)
+            text = ''.join([sentence.text for sentence in html_text])
+            story_dict[c.STORY_TEXT] = text
 
             if (has_all_components(story_dict)):
                 story_list.append(story_dict)

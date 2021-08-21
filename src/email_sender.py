@@ -169,7 +169,8 @@ def email_sender():
       html+= create_story(story, picture)
   html += c.STATIC_END
 
-  recipients = contacts_getter()
+  # recipients = contacts_getter()
+  recipients = ['jdforde@asu.edu']
   if recipients:
     logging.info("Successfully received recipients. Recipients are: %s", recipients)
     logging.info("Composing email")

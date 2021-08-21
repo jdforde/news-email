@@ -1,15 +1,15 @@
 import logging
 from bs4 import BeautifulSoup
 from datetime import date
-import sys
 
 import src.util.constants as c
 from src.util.functions import send_request, has_all_components
 
 """
-Doesn't need article dependency
 Would be nice to get rid of this at end of some articles:
-Reporting was contributed by <!-- -->Eric Adelson<!-- --> from Lakeland, Fla.; <!-- -->Benjamin Guggenheim<!-- --> from Santa Monica, Calif.; <!-- -->Patricia Mazzei<!-- --> from Miami; Will Sennott from New Bedford, Mass.; and <!-- -->Deena Winter<!-- --> from St. Clou!-- -->Deena Winter<!-- --> from St. Cloud, Minn.
+Reporting was contributed by <!-- -->Eric Adelson<!-- --> from Lakeland, Fla.; <!-- -->Benjamin Guggenheim<!-- --> 
+from Santa Monica, Calif.; <!-- -->Patricia Mazzei<!-- --> from Miami; Will Sennott from New Bedford, Mass.; and 
+<!-- -->Deena Winter<!-- --> from St. Clou!-- -->Deena Winter<!-- --> from St. Cloud, Minn.
 """
 
 NYT_LINK = ["https://www.nytimes.com/section/us", "https://www.nytimes.com/section/politics"]
@@ -60,10 +60,4 @@ def scrape_nyt():
             else:
                 logging.warning("Story missing some components, not added")
                 
-
     return story_list
-
-if __name__ == '__main__':
-    stories = scrape_nyt()
-    for story in stories:
-        print(story)

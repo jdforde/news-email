@@ -3,9 +3,6 @@ import logging
 
 from src.util.functions import has_all_components, send_request
 import src.util.constants as c
-"""
-Does not need article dependency
-"""
 
 AP_LINK = "https://apnews.com/"
 AP = "Associated Press"

@@ -1,65 +1,59 @@
-import re
-import json
+from bs4 import BeautifulSoup
+from datetime import date
 import logging
-import sys
+
 import src.util.constants as c
 from src.util.functions import send_request, has_all_components
-
 """
-Please convert npr from JSON to requests like all of the other ones. This little json object
-does not have the story text, so it's basically useless
+There might be an issue with NPR text, but this would be quite difficult to fix
 """
 
 NPR_LINK = "https://www.npr.org/"
 NPR = "NPR"
 FEEDS_REGEX = "https://feeds.npr.org/feeds/100[0-9]/feed.json"
-
+TODAY = date.today()
 ITEMS = "items"
 VIDEO_ARTICLE = "VIDEO"
 STORY_SUMMARY = "summary"
 
 def scrape_npr():
-    logging.info("Starting web-scraping")
-
-    npr_request = send_request(NPR_LINK, NPR)
-    if npr_request == None:
-        logging.critical("Unable to request NPR site")
-        return
-
-    np_result = re.search(FEEDS_REGEX, npr_request.text)
-    json_request = send_request(np_result.group(0), NPR)
-    if json_request == None:
-        logging.critical("Unable to request NPR json")
-        return
-
-    stories = json.loads(json_request.text).get(ITEMS)
-
+    stories = []
     story_list = []
-
-    for story in stories:
-        if VIDEO_ARTICLE in story[c.STORY_TITLE]:
-            logging.info("Skipping video article")
-            continue
-
-        if not story[c.STORY_URL].startswith(NPR_LINK):
-            logging.warning("Skipping story with incorrect URL: %s", story[c.STORY_URL])
-            continue
-
+    requests = send_request(NPR_LINK, NPR)
+    soup = BeautifulSoup(requests.text, c.PARSER)
+    for link in soup.find_all(c.ANCHOR_TAG):
+        if (link.get(c.HREF_TAG) 
+        and link.get(c.HREF_TAG).startswith(NPR_LINK + str(TODAY.year)) 
+        and link.get(c.HREF_TAG) not in stories):
+            stories.append(link.get(c.HREF_TAG))
+    
+    for story_url in stories:
         story_dict = {}
-        if ({c.STORY_TITLE, STORY_SUMMARY, c.STORY_URL} <= story.keys()):
-            logging.info("Scraping article %s", story[c.STORY_TITLE])
-            story_dict[c.STORY_TITLE] = story[c.STORY_TITLE]
-            story_dict[c.STORY_CAPTION] = story[STORY_SUMMARY]
-            story_dict[c.STORY_URL] = story[c.STORY_URL]
-            story_dict[c.STORY_SOURCE] = NPR
-        else:
-            logging.warning("Story missing some components, not added")
+        story_dict[c.STORY_URL] = story_dict
+        story_dict[c.STORY_SOURCE] = NPR
+
+        story_request = send_request(story_url, NPR)
+        if not story_request:
+            logging.error("Unable to get response for story")
             continue
+        html_response = BeautifulSoup(story_request.text, c.PARSER)
+
+        story_dict[c.STORY_TITLE] = html_response.title.string[:-6] #gets rid of  : NPR at the end
+        logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
+
+        story_dict[c.STORY_CAPTION] = html_response.find(property=c.CAPTION_PROPERTY).get(c.CONTENT_PROPERTY)
+        image = html_response.find(property=c.IMAGE_PROPERTY)
+
+        if image:
+            story_dict[c.STORY_IMAGE] = image.get(c.CONTENT_PROPERTY)
+
+        html_text= html_response.find(id="storytext").find_all(c.PARAGRAPH_TAG, class_="")
+        text = ''.join([sentence.text for sentence in html_text if "Getty Images" not in sentence.text and "/AP" not in sentence.text and not "WireImage" in sentence.text])
+        story_dict[c.STORY_TEXT] = text.replace('\n', '')
 
         if (has_all_components(story_dict)):
             story_list.append(story_dict)
         else:
             logging.warning("Story missing some components, not added")
 
-    
     return story_list
