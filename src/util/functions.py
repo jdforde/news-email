@@ -28,7 +28,13 @@ def send_request(link, source):
     return request
 
 def has_all_components(story_dict):
-    if (story_dict[c.STORY_URL] and story_dict[c.STORY_TITLE] and story_dict[c.STORY_CAPTION] and story_dict[c.STORY_SOURCE] and story_dict[c.STORY_TEXT]):
+    if not type(story_dict) is dict:
+        return False
+
+    components = [c.STORY_CAPTION, c.STORY_SOURCE, c.STORY_TEXT, c.STORY_TITLE, c.STORY_URL]
+    dict_keys = list(story_dict.keys())
+    dict_keys.sort()
+    if (components == dict_keys):
         return True
     else:
         return False

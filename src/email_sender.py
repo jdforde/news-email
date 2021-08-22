@@ -20,6 +20,9 @@ from util.functions import read_cache
 '''
 Open Issues:
 Write test cases
+Update README.md
+Add requirements.txt and cleanup myvenv
+Get everything ready for AWS deployment
 '''
 
 total_time = time.time()
@@ -157,7 +160,7 @@ def email_sender():
         logging.error("Unable to keep yesterday's cache. Error with file size. Cache will be empty")
 
   mockup = mockup_generator()
-  choices = random.choices([True, False], weights=(30, 70), k=len(mockup)-1)
+  choices = random.choices([True, False], weights=(70, 30), k=len(mockup)-1)
   choices.insert(0, True)
 
   html = c.STATIC_BEGINNING
@@ -170,7 +173,7 @@ def email_sender():
   if recipients:
     logging.info("Successfully received recipients. Recipients are: %s", recipients)
     logging.info("Composing email")
-    choices = random.choices([True, False], weights=(30, 70), k=len(mockup)-1)
+    choices = random.choices([True, False], weights=(20, 80), k=len(mockup)-1)
     choices.insert(0, True)
     html = c.STATIC_BEGINNING
     for story, picture in zip(mockup, choices):
