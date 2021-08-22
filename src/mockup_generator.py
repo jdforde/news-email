@@ -11,10 +11,9 @@ import tensorflow_hub as hub
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.summarizers.text_rank import TextRankSummarizer
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 import src.util.constants as c
-from src.util.functions import cache, read_cache
+from src.util.functions import cache
 import src.websites as websites
 
 WEBSITES = [website[1] for website in getmembers(websites, isfunction)]
@@ -29,29 +28,7 @@ MODEL = hub.load("USE/")
 TOKENIZER = Tokenizer("english")
 tr_summarizer = TextRankSummarizer()
 
-ABSTRACTIVE_MODEL = AutoModelForSeq2SeqLM.from_pretrained("mrm8488/t5-base-finetuned-summarize-news")
-ABSTRACTIVE_TOKENIZER = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-summarize-news")
-
-def abstractive_summary(start_text):
-    if len(start_text.split()) > 512:
-        logging.info("Story is too long for abstractive summarizer. Summarizing a summary")
-        parser = PlaintextParser.from_string(start_text, TOKENIZER)
-        sentences = tr_summarizer(parser.document, 6)
-        start_text = ''.join([str(sentence) for sentence in sentences])
-
-    input_ids = ABSTRACTIVE_TOKENIZER.encode(start_text, return_tensors="pt", add_special_tokens=True)
-    generated_ids = ABSTRACTIVE_MODEL.generate(input_ids=input_ids, num_beams=2, max_length=100,  repetition_penalty=2.5, length_penalty=1.0, early_stopping=True)
-    preds = [ABSTRACTIVE_TOKENIZER.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=True) for g in generated_ids]
-    
-    chopped_string = preds[0][re.search('\w', preds[0]).start():preds[0].rfind('.')+1]
-    sentence_list = re.split('([a-z]{4,}\. )', chopped_string)
-    for i in range(0, len(sentence_list)-1):
-        if i+1 < len(sentence_list)-1:
-            sentence_list[i] = sentence_list[i] + sentence_list[i+1]
-            sentence_list[i] = sentence_list[i].capitalize()
-            sentence_list.remove(sentence_list[i+1])
-    
-    return sentence_list
+SUMMARY_MAX_LENGTH = 40
 
 def conflict(mockup, old_stories, toadd):
     toadd_embed = MODEL([toadd[c.STORY_TITLE]])
@@ -131,12 +108,18 @@ def mockup_generator():
 
     for story in mockup:
         parser = PlaintextParser.from_string(story[c.STORY_TEXT], TOKENIZER)
-        summary = tr_summarizer(parser.document, 2)
-        if len(' '.join([str(sentence) for sentence in summary]).split()) > 90:
-            logging.info("Sumy summary too long. Creating abstractive summary")
-            story[c.STORY_SUMMARY] = abstractive_summary(story[c.STORY_TEXT])
-        else:
-            story[c.STORY_SUMMARY] = [str(sentence) for sentence in summary]
+        summary = tr_summarizer(parser.document, 3)
+        summary_list = [str(sentence) for sentence in summary if len(str(sentence).split()) < SUMMARY_MAX_LENGTH]
+
+        if not summary_list:
+            logging.info("Sumy summary is too long. Taking 1 sumy point and turning it into several bullet points")
+            summary = tr_summarizer(parser.document, 1)
+            summary_list = re.sub(r'([a-z]{4,}\.((’|”)*)?)', r'\1**|**', str(summary[0]))
+            summary_list = list(filter(None, summary_list.split("**|**")))
+            if len(summary_list) > 3:
+                summary_list = summary_list[:3]
+
+        story[c.STORY_SUMMARY] = summary_list
             
     logging.info("Caching the mockup stories")
     with open(c.CACHED_STORIES, "a") as f:
@@ -144,7 +127,7 @@ def mockup_generator():
             f.write(story[c.STORY_TITLE] + '\n')
 
     #temporary, for testing, remove in production
-    cache(mockup, CACHED_MOCKUP)
+    cache(mockup, "mockup.txt")
 
     logging.info("Finished generating complete mockup in {:.2f} seconds".format(time.time() - activity_time))
     return mockup

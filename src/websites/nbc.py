@@ -51,9 +51,12 @@ def scrape_nbc():
             logging.warning("Story is malformed, skipping %s", story_url)
             continue
             
+        if not html_response.find(class_="article-body__content"):
+            logging.warning("Unable to find article text for %s", story_url)
+            continue
         
         html_text = html_response.find(class_="article-body__content").find_all(c.PARAGRAPH_TAG, class_="")
-        text = ''.join([sentence.text for sentence in html_text])
+        text = ''.join([sentence.text for sentence in html_text]).replace("Download the NBC News app for breaking news and politics", "")
         story_dict[c.STORY_TEXT] = text
 
         image = html_response.find(property=c.IMAGE_PROPERTY)

@@ -46,6 +46,9 @@ def scrape_propublica():
             html_text = html_response.find(class_="article-body").find_all(c.PARAGRAPH_TAG)
         elif html_response.find(class_="content"):
             html_text = html_response.find(class_="content").find_all(c.PARAGRAPH_TAG)
+        else:
+            logging.warning("Unable to find article text for %s", story)
+            continue
 
 
         text = ''.join([sentence.text for sentence in html_text])

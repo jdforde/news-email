@@ -29,7 +29,7 @@ def scrape_npr():
     
     for story_url in stories:
         story_dict = {}
-        story_dict[c.STORY_URL] = story_dict
+        story_dict[c.STORY_URL] = story_url
         story_dict[c.STORY_SOURCE] = NPR
 
         story_request = send_request(story_url, NPR)
@@ -46,6 +46,10 @@ def scrape_npr():
 
         if image:
             story_dict[c.STORY_IMAGE] = image.get(c.CONTENT_PROPERTY)
+
+        if not html_response.find(id="storytext"):
+            logging.warning("Unable to find article text for %s", story_url)
+            continue
 
         html_text= html_response.find(id="storytext").find_all(c.PARAGRAPH_TAG, class_="")
         text = ''.join([sentence.text for sentence in html_text if "Getty Images" not in sentence.text and "/AP" not in sentence.text and not "WireImage" in sentence.text])

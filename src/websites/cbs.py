@@ -46,6 +46,10 @@ def scrape_cbs():
             continue
         logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
 
+        if not html_response.find(class_="content__body"):
+            logging.warning("Unable to find article text for %s", story)
+            continue
+        
         html_text= html_response.find(class_="content__body").find_all(c.PARAGRAPH_TAG)
         text = ''.join([sentence.text for sentence in html_text])
         story_dict[c.STORY_TEXT] = text

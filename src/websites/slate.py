@@ -45,6 +45,10 @@ def scrape_slate():
             if image:
                 story_dict[c.STORY_IMAGE] = image.get(c.CONTENT_PROPERTY)
 
+            if not html_response.find(class_="article__body"):
+                logging.warning("Unable to find article text for %s", story)
+                continue
+
             html_text = html_response.find(class_="article__body").find_all(c.PARAGRAPH_TAG)
             text = ''.join([sentence.text for sentence in html_text])
             story_dict[c.STORY_TEXT] = text

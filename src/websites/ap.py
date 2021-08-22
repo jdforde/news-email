@@ -44,6 +44,9 @@ def scrape_ap():
         else: 
             story_dict[c.STORY_CAPTION] = caption
        
+        if not html_response.find(class_="Article"):
+            logging.warning("Unable to find article text for %s", story_url)
+            continue
         html_text = html_response.find(class_="Article").find_all(c.PARAGRAPH_TAG)
         text = ''.join([sentence.text for sentence in html_text])
         if "(AP) —" in text and "___" in text:

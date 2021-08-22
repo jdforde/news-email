@@ -49,6 +49,10 @@ def scrape_nyt():
             logging.info("Scraping article %s", story_dict[c.STORY_TITLE])
             story_dict[c.STORY_CAPTION] = html_response.find(property=c.CAPTION_PROPERTY).get(c.CONTENT_PROPERTY)
 
+            if not html_response.find("section", {"name":"articleBody"}):
+                logging.warning("Unable to find article text for %s", story_url)
+                continue
+            
             html_text= html_response.find("section", {"name":"articleBody"}).find_all(c.PARAGRAPH_TAG)
             text = ''.join([sentence.text for sentence in html_text])
             story_dict[c.STORY_TEXT] = text

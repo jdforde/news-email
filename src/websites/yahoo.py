@@ -49,7 +49,11 @@ def scrape_yahoo():
         image = html_response.find(property=c.IMAGE_PROPERTY)
         if image:
             story_dict[c.STORY_IMAGE] = image.get(c.CONTENT_PROPERTY)
-            
+        
+        if not html_response.find(class_="caas-body"):
+            logging.warning("Unable to find article text for %s", story)
+            continue
+
         html_text = html_response.find(class_="caas-body").find_all(c.PARAGRAPH_TAG)
         text = ''.join([sentence.text for sentence in html_text])
         if "____" in text:

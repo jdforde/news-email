@@ -19,11 +19,7 @@ from util.functions import read_cache
 
 '''
 Open Issues:
-- Drop newspaper dependency by grabbign article text in each website (might be slow, could try grabbing during article build, but it's different for each site)
-- Multithread mockup generation because asbtractive summary creation is very slow
-- Get rid of weird torch warning
-- try writing test cases
-- Long term: create own ML abstractive text, would be big commitment or create your own sumy that doens't take long sentences
+Write test cases
 '''
 
 total_time = time.time()
@@ -169,8 +165,8 @@ def email_sender():
       html+= create_story(story, picture)
   html += c.STATIC_END
 
-  # recipients = contacts_getter()
-  recipients = ['jdforde@asu.edu']
+  recipients = contacts_getter()
+
   if recipients:
     logging.info("Successfully received recipients. Recipients are: %s", recipients)
     logging.info("Composing email")
