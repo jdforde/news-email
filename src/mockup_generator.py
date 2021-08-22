@@ -13,7 +13,6 @@ from sumy.parsers.plaintext import PlaintextParser
 from sumy.summarizers.text_rank import TextRankSummarizer
 
 import src.util.constants as c
-from src.util.functions import cache
 import src.websites as websites
 
 WEBSITES = [website[1] for website in getmembers(websites, isfunction)]
@@ -26,7 +25,7 @@ SIMILARITY_CONSTANT = .2
 MODEL = hub.load("USE/")
 
 TOKENIZER = Tokenizer("english")
-tr_summarizer = TextRankSummarizer()
+TR_SUMMARIZER = TextRankSummarizer()
 
 SUMMARY_MAX_LENGTH = 40
 
@@ -108,12 +107,12 @@ def mockup_generator():
 
     for story in mockup:
         parser = PlaintextParser.from_string(story[c.STORY_TEXT], TOKENIZER)
-        summary = tr_summarizer(parser.document, 3)
+        summary = TR_SUMMARIZER(parser.document, 3)
         summary_list = [str(sentence) for sentence in summary if len(str(sentence).split()) < SUMMARY_MAX_LENGTH]
 
         if not summary_list:
             logging.info("Sumy summary is too long. Taking 1 sumy point and turning it into several bullet points")
-            summary = tr_summarizer(parser.document, 1)
+            summary = TR_SUMMARIZER(parser.document, 1)
             summary_list = re.sub(r'([a-z]{4,}\.((’|”)*)?)', r'\1**|**', str(summary[0]))
             summary_list = list(filter(None, summary_list.split("**|**")))
             if len(summary_list) > 3:
@@ -125,9 +124,6 @@ def mockup_generator():
     with open(c.CACHED_STORIES, "a") as f:
         for story in mockup:
             f.write(story[c.STORY_TITLE] + '\n')
-
-    #temporary, for testing, remove in production
-    cache(mockup, "mockup.txt")
 
     logging.info("Finished generating complete mockup in {:.2f} seconds".format(time.time() - activity_time))
     return mockup

@@ -2,7 +2,6 @@ __pycache__ *
 __pycache__
 tempCodeRunnerFile.py
 .vscode
-myvenv
 allstories.txt
 mockup.txt
 readmockup.py
@@ -11,3 +10,4 @@ USE
 cache.html
 cached_stories.txt
 test_concurrency.py
+email_venv

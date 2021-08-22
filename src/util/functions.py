@@ -32,9 +32,7 @@ def has_all_components(story_dict):
         return False
 
     components = [c.STORY_CAPTION, c.STORY_SOURCE, c.STORY_TEXT, c.STORY_TITLE, c.STORY_URL]
-    dict_keys = list(story_dict.keys())
-    dict_keys.sort()
-    if (components == dict_keys):
+    if (all(x in list(story_dict.keys()) for x in components)):
         return True
     else:
         return False

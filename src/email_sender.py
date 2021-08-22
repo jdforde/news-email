@@ -15,15 +15,6 @@ from sendgrid.helpers.mail import Mail
 from src.mockup_generator import mockup_generator
 import src.util.secret_constants as sc
 import src.util.constants as c
-from util.functions import read_cache
-
-'''
-Open Issues:
-Write test cases
-Update README.md
-Add requirements.txt and cleanup myvenv
-Get everything ready for AWS deployment
-'''
 
 total_time = time.time()
 logger = logging.getLogger()
