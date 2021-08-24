@@ -154,11 +154,6 @@ def email_sender():
   choices = random.choices([True, False], weights=(70, 30), k=len(mockup)-1)
   choices.insert(0, True)
 
-  html = c.STATIC_BEGINNING
-  for story, picture in zip(mockup, choices):
-      html+= create_story(story, picture)
-  html += c.STATIC_END
-
   recipients = contacts_getter()
 
   if recipients:
