@@ -11,3 +11,4 @@ cache.html
 cached_stories.txt
 test_concurrency.py
 email_venv
+myvenv
