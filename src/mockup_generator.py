@@ -23,7 +23,7 @@ CACHED_MOCKUP = "mockup.txt"
 UNDER_THRESHOLD = len(WEBSITES)/24
 
 SIMILARITY_CONSTANT = .2
-MODEL = hub.load("USE/")
+MODEL = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 
 TOKENIZER = Tokenizer("english")
 TR_SUMMARIZER = TextRankSummarizer()

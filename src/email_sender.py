@@ -12,7 +12,7 @@ from pathlib import Path
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
-# from src.mockup_generator import mockup_generator
+from src.mockup_generator import mockup_generator
 from src.util.functions import read_cache
 import src.util.secret_constants as sc
 import src.util.constants as c
@@ -176,19 +176,19 @@ def email_sender():
     activity_time = time.time()
     with open("cache.html", "w") as f:
       f.write(html)
-    # for recipient in recipients:
-      # message = Mail(
-      #     from_email=sc.SENDER_EMAIL,
-      #     to_emails=recipient,
-      #     subject=c.month[datetime.today().month] + " " + str(datetime.today().day) + ", " + str(datetime.today().year),
-      #     html_content=html
-      # )
+    for recipient in recipients:
+      message = Mail(
+          from_email=sc.SENDER_EMAIL,
+          to_emails=recipient,
+          subject=c.month[datetime.today().month] + " " + str(datetime.today().day) + ", " + str(datetime.today().year),
+          html_content=html
+      )
 
-      # try:
-      #     sg = SendGridAPIClient(sc.SENDGRID_API_KEY)
-      #     sg.send(message)
-      # except Exception as e:
-      #     logging.critical("Unable to send email: ", e)
+      try:
+          sg = SendGridAPIClient(sc.SENDGRID_API_KEY)
+          sg.send(message)
+      except Exception as e:
+          logging.critical("Unable to send email: ", e)
 
     logging.info("Successfully able to send email in {:.2f} seconds".format(time.time()-activity_time))
     logging.info("Entire program finished in {:.2f} seconds".format(time.time()-total_time))
