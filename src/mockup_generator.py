@@ -13,6 +13,7 @@ from sumy.parsers.plaintext import PlaintextParser
 from sumy.summarizers.text_rank import TextRankSummarizer
 
 import src.util.constants as c
+from src.util.functions import cache
 import src.websites as websites
 
 WEBSITES = [website[1] for website in getmembers(websites, isfunction)]
@@ -124,6 +125,8 @@ def mockup_generator():
     with open(c.CACHED_STORIES, "a") as f:
         for story in mockup:
             f.write(story[c.STORY_TITLE] + '\n')
+    
+    cache(mockup, "mockup.txt")
 
     logging.info("Finished generating complete mockup in {:.2f} seconds".format(time.time() - activity_time))
     return mockup
